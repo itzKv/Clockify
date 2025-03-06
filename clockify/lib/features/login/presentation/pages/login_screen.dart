@@ -1,3 +1,4 @@
+import 'package:clockify/features/password/presentation/pages/password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -11,6 +12,25 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
 
+  Route _createRouteForPasswordScreen() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => PasswordScreen(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -23,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             // Logo
             SizedBox(
@@ -32,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Image.asset('assets/images/Logo.png'),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 100),
 
             // Email 
             Column(
@@ -49,48 +69,70 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Padding(
+                          //   padding: EdgeInsets.only(bottom: 4),
+                          //   child: Text(
+                          //     "E-mail",
+                          //     style: TextStyle(
+                          //       color: Colors.white,
+                          //       fontSize: 14,
+                          //       fontWeight: FontWeight.w700
+                          //     ),
+                          //   )
+                          // ),
                           Padding(
-                            padding: EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              "E-mail",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700
+                            padding: EdgeInsets.only(left: 10, right: 10),
+                            child: TextFormField(
+                              controller: _emailController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                floatingLabelBehavior: FloatingLabelBehavior.auto,
+                                labelText: "Email",
+                                labelStyle: const TextStyle(
+                                  color: Colors.white, 
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700
+                                ),
+                                enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.white, width: 2)
+                                )
                               ),
-                            )
-                          ),
-                          TextFormField(
-                            controller: _emailController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: "Input E-mail",
-                              labelStyle: const TextStyle(color: Colors.grey),
-
                             ),
-                          ),
+                          )
                         ],
                       )
                     )
                   ],
                 ),
+                SizedBox(height: 40,),
+                
                 // Login Button
-                SizedBox(
+                Container(
+                  height: 48,
                   width: double.infinity,
-                  height: 50,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [Color(0xff45CDDC), Color(0xff2EBED9)]
+                    )
+                  ),
+
                   child: ElevatedButton(
                     onPressed: () {
-                      print("Loggin in: ${_emailController.text}");
+                      Navigator.push(context, _createRouteForPasswordScreen());
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       )
                     ),
-                    child: Text("SIGN IN", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),)
+                    child: Text("SIGN IN", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),),
                   ),
                 ),
+
+                SizedBox(height: 40,),
 
                 // Create new account
                 TextButton(
@@ -101,8 +143,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     "Create new account?",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
-                      decoration: TextDecoration.underline
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.white,
                     ),
                   )
                 )

@@ -1,8 +1,9 @@
 import 'package:clockify/core/themes/theme.dart';
+import 'package:clockify/features/login/presentation/pages/login_screen.dart';
+import 'package:clockify/features/password/presentation/pages/password_screen.dart';
+import 'package:clockify/features/register/presentation/pages/register_screen.dart';
 import 'package:clockify/features/splash/presentation/pages/splash_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,8 +19,14 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      initialRoute: '/',
+      routes: {
+        '/': (context) => SplashScreen(),
+        '/login': (context) => LoginScreen(),
+        '/register': (context) => RegisterScreen(),
+        '/password': (context) => PasswordScreen(),
+      },
       theme: appTheme,
-      home: SplashScreen()
     );
   }
 }
