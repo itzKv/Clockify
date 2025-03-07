@@ -1,8 +1,9 @@
 import 'package:clockify/core/themes/theme.dart';
 import 'package:clockify/features/login/presentation/pages/login_screen.dart';
 import 'package:clockify/features/password/presentation/pages/password_screen.dart';
-import 'package:clockify/features/register/presentation/pages/register_screen.dart';
+import 'package:clockify/features/create_account/presentation/pages/create_account_screen.dart';
 import 'package:clockify/features/splash/presentation/pages/splash_screen.dart';
+import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
@@ -23,8 +24,9 @@ class MainApp extends StatelessWidget {
       routes: {
         '/': (context) => SplashScreen(),
         '/login': (context) => LoginScreen(),
-        '/register': (context) => RegisterScreen(),
+        '/createAccount': (context) => CreateAccountScreen(),
         '/password': (context) => PasswordScreen(),
+        '/timer': (context) => TimerScreen(),
       },
       theme: appTheme,
     );
