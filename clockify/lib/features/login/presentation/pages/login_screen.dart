@@ -45,11 +45,14 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            // Logo
-            SizedBox(
-              height: 80,
-              width: 260,
-              child: Image.asset('assets/images/Logo.png'),
+            Padding(
+              padding: EdgeInsets.only(top: 80),
+              // Logo
+              child: SizedBox(
+                height: 80,
+                width: 260,
+                child: Image.asset('assets/images/Logo.png'),
+              ),
             ),
 
             const SizedBox(height: 100),
@@ -149,8 +152,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       decorationColor: Colors.white,
                     ),
                   )
-                )
+                ),
 
+                SizedBox(height: 40,),
               ],
             ),   
           ],
