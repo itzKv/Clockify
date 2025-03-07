@@ -12,6 +12,7 @@ dependencies:
   flutter_svg: ^2.0.17
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  stop_watch_timer:
 
 dev_dependencies:
   flutter_test:
