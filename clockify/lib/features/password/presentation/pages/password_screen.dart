@@ -9,8 +9,41 @@ class PasswordScreen extends StatefulWidget {
 }
 
 class _PasswordScreenState extends State<PasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _passwordController = TextEditingController();
-  late bool _isObscure = true;
+  bool _isObscure = true;
+
+  // Prevent memory leaks
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required.';
+    }
+    if (value.length < 6 || value.length > 20) {
+      return 'Password must be 6-20 characters.';
+    }
+    final regex = RegExp(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}:;<>,.?/~`\[\]\\-]).{6,20}$');
+  
+    if (!regex.hasMatch(value)) {
+      return 'Password must contain 1 number and \n1 special character';
+    }
+    
+    return null;
+  }
+
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Navigate to Main Screen'),),
+        // Navigate to Timer Screen
+      );
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -37,7 +70,6 @@ class _PasswordScreenState extends State<PasswordScreen> {
               child: Text(
                 "Password",
                 style: TextStyle(
-                  fontFamily: 'Nunito Sans',
                   color: Color(0xff233971),
                   fontSize: 24,
                   fontWeight: FontWeight.w700
@@ -48,15 +80,20 @@ class _PasswordScreenState extends State<PasswordScreen> {
             SizedBox(height: 80,),
 
             // Password
-            TextFormField(
+            Form(
+              child: TextFormField(
                 controller: _passwordController,
                 obscureText: _isObscure,
+                keyboardType: TextInputType.visiblePassword,
+                validator: _validatePassword,
                 decoration: InputDecoration(
                   floatingLabelBehavior: FloatingLabelBehavior.auto,
+                  floatingLabelStyle: TextStyle(
+                    color: Color(0xff233971)
+                  ),
                   labelText: "Input Your Password",
                   labelStyle: TextStyle(
                     color: Color(0xffA7A6C5),
-                    fontFamily: 'Nunito Sans',
                     fontSize: 14,
                     fontWeight: FontWeight.w400
                   ),
@@ -78,6 +115,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                       )
                   ),
                 ),
+              ),
             ),
 
             SizedBox(height: 40,),
@@ -94,7 +132,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
               ),
 
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -110,13 +150,14 @@ class _PasswordScreenState extends State<PasswordScreen> {
 
             // Create new account
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+
+              },
               child: Text(
                 "Forgot Password?",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xffA7A6C5),
-                  fontFamily: 'Nunito Sans',
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   decoration: TextDecoration.underline,
