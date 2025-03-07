@@ -1,3 +1,5 @@
+import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
+import 'package:clockify/features/create_account/presentation/pages/create_account_screen.dart';
 import 'package:clockify/features/password/presentation/pages/password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,6 +14,25 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
 
+  Route _createRouteForCreateAccount() {
+  return PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) => CreateAccountScreen(),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(1.0, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(
+        position: offsetAnimation,
+        child: child,
+      );
+    }
+  );
+  }
+  
   Route _createRouteForPasswordScreen() {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => PasswordScreen(),
@@ -130,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       )
-                    ),
+                    ),  
                     child: Text("SIGN IN", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),),
                   ),
                 ),
@@ -140,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Create new account
                 TextButton(
                   onPressed: () {
-                    debugPrint("Navigating to Register Screen");
+                      Navigator.push(context, _createRouteForCreateAccount());
                   },
                   child: Text(
                     "Create new account?",
