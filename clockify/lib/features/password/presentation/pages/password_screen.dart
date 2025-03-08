@@ -1,4 +1,7 @@
+import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/core/themes/theme.dart';
+import 'package:clockify/features/home/presentation/pages/home_screen.dart';
+import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
 
 class PasswordScreen extends StatefulWidget {
@@ -37,13 +40,57 @@ class _PasswordScreenState extends State<PasswordScreen> {
   }
 
   void _submitForm() {
+    if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
+      return; // Stop execution if formKey is null or validation fails
+    }
+
     if (_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Navigate to Main Screen'),),
-        // Navigate to Timer Screen
       );
+      // Navigate to Timer Screen
+      _loginSucceess(context,);
     }
   }
+
+  Route _createRouteForHomeScreen() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
+  void _loginSucceess(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: false, 
+    builder: (context) {
+      Future.delayed(Duration(seconds: 3), () async {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context); // Close the dialog
+          Navigator.push(context, _createRouteForHomeScreen());
+        }
+      });
+
+      return SuccessDialog(
+        title: "Hello",
+        message: "Welcome back.",
+      );
+    },
+  );
+}
   
   @override
   Widget build(BuildContext context) {
@@ -133,7 +180,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
 
               child: ElevatedButton(
                 onPressed: () {
-                  
+                  Navigator.push(context, _createRouteForHomeScreen());
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
@@ -150,9 +197,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
 
             // Create new account
             TextButton(
-              onPressed: () {
-
-              },
+              onPressed: () {},
               child: Text(
                 "Forgot Password?",
                 textAlign: TextAlign.center,
