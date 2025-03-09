@@ -53,10 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: IndexedStack(
                 index: _selectedIndex,
-                children: [
-                  TimerScreen(),
-                  ActivityScreen(),
-                ],
+                children: _screens,
               ) ,
             )
           ],
