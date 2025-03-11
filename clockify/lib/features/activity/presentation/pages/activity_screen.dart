@@ -39,7 +39,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return "$hours : $minutes : $seconds";
   }
 
-  Widget _searchActivity() {
+  Widget _searchActivity(ActivityProvider activityProvider) {
     return Flexible(
       flex: 2,
       child: Container(
@@ -52,6 +52,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: TextFormField(
+            onChanged: (value) {
+              activityProvider.getActivityByDescription(value);
+            },
             decoration: const InputDecoration(
               hintText: "Search activity",
               hintStyle: TextStyle(
@@ -320,7 +323,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Expanded(
       child: Consumer<ActivityProvider>(
         builder: (context, activityProvider, child) {
-          activityProvider.fetchActivities();
+          if (!activityProvider.isSearching) {
+             activityProvider.fetchActivities(); // Fetch at once
+          }
+          
           final activities = activityProvider.activities;
 
           if (activities.isEmpty) {
@@ -358,7 +364,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _searchActivity(),
+                          _searchActivity(activityProvider),
                           SizedBox(width: 16,),
                           _filterActivity(),
                         ],
