@@ -1,8 +1,11 @@
+import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/repositories/activity_repository.dart';
+import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/business/usecases/save_activity.dart';
 import 'package:clockify/features/activity/presentation/pages/activity_screen.dart';
 import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
 
@@ -14,19 +17,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  late List<Widget> _screens;
 
   @override
-  void initState() {
-    super.initState();
-    _screens = [
-      TimerScreen(),
-      ActivityScreen(),
-    ];
-  }
-  @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -47,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Navigation Item
                 children: [
                   _buildNavItem("TIMER", 0),
-                  _buildNavItem("ACTIVIY", 1),
+                  _buildNavItem("ACTIVITY", 1),
                 ],
               ),
             ),            
@@ -55,7 +48,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: IndexedStack(
                 index: _selectedIndex,
-                children: _screens,
+                children: [
+                  TimerScreen(),
+                  ActivityScreen()
+                ],
               ) ,
             )
           ],

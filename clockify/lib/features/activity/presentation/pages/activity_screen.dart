@@ -1,7 +1,10 @@
+import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
+import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
-import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
+import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -16,6 +19,8 @@ class ActivityScreen extends StatefulWidget {
 class _ActivityScreenState extends State<ActivityScreen> {
   final DateFormat timeFormatter = DateFormat('HH:mm:ss'); 
   late String _dropdownValue = 'Latest Date';
+  late Future<List<ActivityEntity>> _futureActivities;
+
   void dropdownCallback(String? selectedValue) {
     if (selectedValue != null) {
       setState(() {
@@ -24,16 +29,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
-    String formatDuration(Duration duration) {
-      String twoDigits(int n) => n.toString().padLeft(2, '0');
-      
-      final hours = twoDigits(duration.inHours);
-      final minutes = twoDigits(duration.inMinutes.remainder(60));
-      final seconds = twoDigits(duration.inSeconds.remainder(60));
-      
-      return "$hours : $minutes : $seconds";
-    }
-
+  String formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    
+    return "$hours : $minutes : $seconds";
+  }
 
   Widget _searchActivity() {
     return Flexible(
@@ -110,185 +114,264 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  Widget _activityInfo(ActivityEntity activity) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(TimerScreen(activity: activity));
-      },
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          children: [
-            Container(
-              height: 64,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          formatDuration((activity.endTime.difference(activity.startTime))),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time_filled,
-                              color: Color(0xffA7A6C5),
-                            ),
-                            SizedBox(width: 4), // Add spacing
-                            Text(
-                              timeFormatter.format(activity.startTime),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                            Text(
-                              ' - ',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                            Text(
-                              timeFormatter.format(activity.endTime),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+  Widget _activityInfo(ActivityEntity activity, ActivityProvider activityProvider) {
+    return Slidable(
+      key: ValueKey(activity.id),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(), 
+        extentRatio: 0.3,
+        children: [
+          SlidableAction(
+            onPressed: (context) async {
+              bool? confirmDelete = await showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text(
+                      textAlign: TextAlign.center,
+                      "Confirm Delete",
+                      style: TextStyle(
+                        color: Colors.black
+                      ),
                     ),
-                  ),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          activity.description,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              color: Color(0xffA7A6C5),
-                              size: 20,
-                            ),
-                            SizedBox(width: 4), // Add spacing
-                            Text(
-                              '${activity.locationLat!.toStringAsFixed(4)},${activity.locationLng!.toStringAsFixed(4)}',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    content: Text(
+                      "Are you sure want to delete this activity?",
+                      style: TextStyle(
+                        color: Color(0xffA7A6C5)
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 2,),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: Text(
+                          "Delete",
+                          style: TextStyle(
+                            color: Colors.red
+                          ) ,
+                        ),
+                      )
+                    ],
+                  );
+                }
+              );
 
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4),
-              child: Container(
-                height: 1,
-                width: double.infinity,
-                color: Color(0xff434B8C),
+              if (confirmDelete == true) {
+                try {
+                  activityProvider.deleteActivity(activity.id);
+                  // Sucess then show dialog
+                  if (context.mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        Future.delayed(Duration(seconds: 3), () async {
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context); // Close the dialog
+                          }
+
+                          if (context.mounted) {
+                              Navigator.pop(context); // Close the Activity Detail Screen
+                            }
+                          });
+
+                          return SuccessDialog(
+                            title: "Activity Deleted", 
+                            message: "Activity of ${activity.description} has beed deleted."
+                          );
+                        },
+                      );
+                    }
+                  } catch (e) {
+                    debugPrint("Error deleting activity: $e");
+                  }
+                }
+            },
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white, 
+            icon: Icons.delete,
+            label: "Delete",
+          )
+        ]
+      ),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.of(context).pushNamed(
+            '/activityDetail',
+            arguments: activity,
+          );
+        },
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            children: [
+              Container(
+                height: 64,
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            formatDuration((activity.endTime.difference(activity.startTime))),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_filled,
+                                color: Color(0xffA7A6C5),
+                              ),
+                              SizedBox(width: 4), // Add spacing
+                              Text(
+                                timeFormatter.format(activity.startTime),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              Text(
+                                ' - ',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              Text(
+                                timeFormatter.format(activity.endTime),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            activity.description,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                color: Color(0xffA7A6C5),
+                                size: 20,
+                              ),
+                              SizedBox(width: 4), // Add spacing
+                              Text(
+                                '${activity.locationLat!.toStringAsFixed(4)},${activity.locationLng!.toStringAsFixed(4)}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: 2,),
+
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Container(
+                  height: 1,
+                  width: double.infinity,
+                  color: Color(0xff434B8C),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _activityList(GetAllActivities getAllActivities) {
+  Widget _activityList(ActivityProvider activityProvider) {
     return Expanded(
-      child: FutureBuilder<List<ActivityEntity>>(
-        future: getAllActivities(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(),);
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"),);
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
+      child: Consumer<ActivityProvider>(
+        builder: (context, activityProvider, child) {
+          activityProvider.fetchActivities();
+          final activities = activityProvider.activities;
+
+          if (activities.isEmpty) {
+            return Center(
               child: Text(
-                "No activities found!",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                )
+                "No activities found.",
+                style: TextStyle(color: Colors.white),
               ),
             );
           }
 
-          final activities = snapshot.data!;
           return ListView.builder(
             itemCount: activities.length,
             itemBuilder: (context, index) {
               final activity = activities[index];
-              return _activityInfo(activity);
+              return _activityInfo(activity, activityProvider);
             },
           );
-        },
+        }
       )
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final getAllActivities = Provider.of<GetAllActivities>(context);
-    return SafeArea(
-      child: Scaffold(
-        body: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _searchActivity(),
-                        SizedBox(width: 16,),
-                        _filterActivity(),
-                      ],
+      final activityProvider = Provider.of<ActivityProvider>(context);
+
+      return SafeArea(
+        child: Scaffold(
+          body: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _searchActivity(),
+                          SizedBox(width: 16,),
+                          _filterActivity(),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // ListView or other UI elements can go here
-                  _activityList(getAllActivities),
-                ],
-              ), 
+                    // ListView or other UI elements can go here
+                    _activityList(activityProvider),
+                  ],
+                ), 
 
-        ),
-    );
+          ),
+      );
+    }
   }
-}
