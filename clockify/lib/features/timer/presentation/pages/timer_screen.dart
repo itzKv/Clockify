@@ -1,9 +1,12 @@
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
-import 'package:clockify/features/timer/business/entities/timer_entry.dart';
+import 'package:clockify/features/activity/business/entities/activity_entity.dart';
+import 'package:clockify/features/activity/business/usecases/save_activity.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:uuid/uuid.dart';
 
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
@@ -20,11 +23,11 @@ class _TimerScreenState extends State<TimerScreen> {
   DateTime? _endTime;
   final DateFormat timeFormatter = DateFormat('HH:mm:ss'); 
   final DateFormat dateFormatter = DateFormat('d MMM yy'); 
+  late double? _locationLat;
+  late double? _locationLng;
   late String _locationAddress = "Fetching location ...";
-  TextEditingController _descriptionController = TextEditingController();
-  late TimerEntry _timerEntry = TimerEntry(
-    description: _descriptionController.text,
-  );
+  final TextEditingController _descriptionController = TextEditingController();
+  final Uuid _uuid = Uuid();
 
   @override
   void initState() {
@@ -77,6 +80,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
     // Get the location
     return await Geolocator.getCurrentPosition(
+      // ignore: deprecated_member_use
       desiredAccuracy: LocationAccuracy.high,
     );
   }
@@ -85,11 +89,13 @@ class _TimerScreenState extends State<TimerScreen> {
     try {
       Position position = await _getCurrentPosition();
       setState(() {
-        _locationAddress = '${position.altitude}';
+        _locationLat = position.latitude;
+        _locationLng = position.longitude;
+        _locationAddress = '$_locationLat , $_locationLng';
       });
     } catch (e) {
        setState(() {
-        _locationAddress = 'Error: ${e}'; 
+        _locationAddress = 'Error: $e'; 
        });
     }
   }
@@ -372,7 +378,7 @@ class _TimerScreenState extends State<TimerScreen> {
     );
   }
 
-  Widget _button() {
+  Widget _button(SaveActivity saveActivity) {
     return SizedBox(
       width: double.infinity,
       child: _isTimerStarted
@@ -402,35 +408,46 @@ class _TimerScreenState extends State<TimerScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         if (_validateInput()) {
-                          debugPrint("Ganti state");
                           setState(() {
                             _isTimerStarted = !_isTimerStarted;
                             _isTimerStopped = !_isTimerStopped;
                             
-                            // Save
-                            _timerEntry = TimerEntry(
-                              startTime: _startTime,
-                              endTime: _endTime,
+                            final activity = ActivityEntity(
+                              id: _uuid.v4(),
+                              startTime: _startTime!,
+                              endTime: _endTime!,
                               description: _descriptionController.text,
+                              locationLat: _locationLat,
+                              locationLng: _locationLng,
+                              createdAt: _startTime!,
+                              updatedAt: _endTime!,
                             );
 
-                            // Show dialog
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                Future.delayed(Duration(seconds: 3), () async {
-                                  if (Navigator.canPop(context)) {
-                                    Navigator.pop(context); // Close the dialog
-                                  }
-                                });
+                            // Save
+                            try {
+                              saveActivity(activity);
 
-                                return SuccessDialog(
-                                  title: "Activity Saved", 
-                                  message: "Your activity has been saved."
+                              // Sucess then show dialog
+                              if (context.mounted) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    Future.delayed(Duration(seconds: 3), () async {
+                                      if (Navigator.canPop(context)) {
+                                        Navigator.pop(context); // Close the dialog
+                                      }
+                                    });
+
+                                    return SuccessDialog(
+                                      title: "Activity Saved", 
+                                      message: "Your activity has been saved."
+                                    );
+                                  },
                                 );
-                              },
-                            );
-                            
+                              }
+                            } catch (e) {
+                              debugPrint("Error saving activity: $e");
+                            }
                           });
                         }
                       }, 
@@ -461,8 +478,6 @@ class _TimerScreenState extends State<TimerScreen> {
                         setState(() {
                           _isTimerStarted = false;
                           _isTimerStopped = false;
-                          _startTime = null;
-                          _endTime = null;
                           _descriptionController.text = "";
                         });
                       },
@@ -540,8 +555,6 @@ class _TimerScreenState extends State<TimerScreen> {
                         setState(() {
                           _isTimerStarted = false;
                           _isTimerStopped = false;
-                          _startTime = null;
-                          _endTime = null;
                         });
                       },
                       style: ElevatedButton.styleFrom(
@@ -585,7 +598,6 @@ class _TimerScreenState extends State<TimerScreen> {
                 _stopWatchTimer.onStartTimer();
                 setState(() {
                   _isTimerStarted = !_isTimerStarted;
-                  _endTime = null;
                   _startTime = DateTime.now();
                 });
               }, 
@@ -607,6 +619,8 @@ class _TimerScreenState extends State<TimerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final saveActivity = Provider.of<SaveActivity>(context);
+
     var children = [
       // Stop watch
       SizedBox(height: 72),
@@ -626,7 +640,7 @@ class _TimerScreenState extends State<TimerScreen> {
       SizedBox(height: 32),
 
       // Button
-      _button(),
+      _button(saveActivity),
     ];
 
     return SafeArea(
