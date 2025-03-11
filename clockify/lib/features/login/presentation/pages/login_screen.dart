@@ -1,4 +1,3 @@
-import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/create_account/presentation/pages/create_account_screen.dart';
 import 'package:clockify/features/password/presentation/pages/password_screen.dart';
 import 'package:flutter/material.dart';

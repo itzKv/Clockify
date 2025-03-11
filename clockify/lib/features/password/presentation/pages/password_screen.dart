@@ -1,7 +1,6 @@
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/core/themes/theme.dart';
 import 'package:clockify/features/home/presentation/pages/home_screen.dart';
-import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
 
 class PasswordScreen extends StatefulWidget {
@@ -80,7 +79,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
       Future.delayed(Duration(seconds: 3), () async {
         if (Navigator.canPop(context)) {
           Navigator.pop(context); // Close the dialog
-          Navigator.push(context, _createRouteForHomeScreen());
+          Navigator.of(context).push(
+            _createRouteForHomeScreen()
+          );
         }
       });
 
@@ -94,6 +95,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
   
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: appTheme.secondaryHeaderColor,
       appBar: AppBar(
@@ -180,7 +182,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
 
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.push(context, _createRouteForHomeScreen());
+                  Navigator.of(context).push(
+                    _createRouteForHomeScreen()
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,

@@ -1,6 +1,4 @@
-import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/core/themes/theme.dart';
-import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -62,48 +60,48 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         SnackBar(content: Text('Navigate to Main Screen'),),
       );
       // Navigate to Timer Screen
-      _createAccountSuccess(context,);
+      // _createAccountSuccess(context,);
     }
   }
 
-  Route _createRouteForTimerScreen() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => TimerScreen(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(1.0, 0.0);
-        const end = Offset.zero;
-        const curve = Curves.easeInOut;
+//   Route _createRouteForTimerScreen() {
+//     return PageRouteBuilder(
+//       pageBuilder: (context, animation, secondaryAnimation) => TimerScreen(),
+//       transitionsBuilder: (context, animation, secondaryAnimation, child) {
+//         const begin = Offset(1.0, 0.0);
+//         const end = Offset.zero;
+//         const curve = Curves.easeInOut;
 
-        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-        var offsetAnimation = animation.drive(tween);
+//         var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+//         var offsetAnimation = animation.drive(tween);
 
-        return SlideTransition(
-          position: offsetAnimation,
-          child: child,
-        );
-      },
-    );
-  }
+//         return SlideTransition(
+//           position: offsetAnimation,
+//           child: child,
+//         );
+//       },
+//     );
+//   }
 
-  void _createAccountSuccess(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierDismissible: false, 
-    builder: (context) {
-      Future.delayed(Duration(seconds: 3), () async {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context); // Close the dialog
-          Navigator.push(context, _createRouteForTimerScreen());
-        }
-      });
+//   void _createAccountSuccess(BuildContext context) {
+//   showDialog(
+//     context: context,
+//     barrierDismissible: false, 
+//     builder: (context) {
+//       Future.delayed(Duration(seconds: 3), () async {
+//         if (Navigator.canPop(context)) {
+//           Navigator.pop(context); // Close the dialog
+//           Navigator.push(context, _createRouteForTimerScreen());
+//         }
+//       });
 
-      return SuccessDialog(
-        title: "Success",
-        message: "Your account has been successfully created.",
-      );
-    },
-  );
-}
+//       return SuccessDialog(
+//         title: "Success",
+//         message: "Your account has been successfully created.",
+//       );
+//     },
+//   );
+// }
 
 
   // Prevent memory leaks

@@ -1,8 +1,11 @@
+import 'package:clockify/features/activity/business/repositories/activity_repository.dart';
+import 'package:clockify/features/activity/business/usecases/save_activity.dart';
 import 'package:clockify/features/activity/presentation/pages/activity_screen.dart';
 import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
+
   const HomeScreen({super.key});
 
   @override
@@ -11,20 +14,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  late List<Widget> _screens;
 
-  // List of Screens
-  final List<Widget> _screens = [
-    TimerScreen(),
-    ActivityScreen(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      TimerScreen(),
+      ActivityScreen(),
+    ];
   }
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -68,7 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return TextButton(
       onPressed: () {},  
       child: TextButton(
-        onPressed: () => setState(() => _selectedIndex = index),
+        onPressed: () { setState(() {
+          _selectedIndex = index;
+        });},
         child: Container(
           padding: EdgeInsets.only(bottom: 1),
           decoration: isSelected ? BoxDecoration(
