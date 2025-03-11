@@ -2,6 +2,7 @@ import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
 import 'package:clockify/features/activity/business/usecases/save_activity.dart';
+import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
@@ -19,14 +20,9 @@ class ActivityDetailScreen extends StatefulWidget {
 
 class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   final StopWatchTimer _stopWatchTimer = StopWatchTimer();
-  DateTime? _startTime;
-  DateTime? _endTime;
   final DateFormat timeFormatter = DateFormat('HH:mm:ss'); 
   final DateFormat dateFormatter = DateFormat('d MMM yy'); 
-  late double? _locationLat;
-  late double? _locationLng;
   late TextEditingController _descriptionController = TextEditingController();
-  final Uuid _uuid = Uuid();
 
   @override
   void initState() {
@@ -269,7 +265,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  Widget _button(SaveActivity saveActivity, DeleteActivity deleteActivity) {
+  Widget _button(ActivityProvider activityProvider) {
     return SizedBox(
       width: double.infinity,
       child: SizedBox(
@@ -312,7 +308,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
                         // Save
                         try {
-                          saveActivity(activity);
+                          activityProvider.addActivity(activity); // Update
 
                           // Sucess then show dialog
                           if (context.mounted) {
@@ -402,7 +398,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
                     if (confirmDelete == true) {
                       try {
-                        deleteActivity(widget.activity.id);
+                        activityProvider.deleteActivity(widget.activity.id);
 
                         // Sucess then show dialog
                         if (context.mounted) {
@@ -454,9 +450,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   @override
   Widget build(BuildContext context) {
     // Use Cases
-    final saveActivity = Provider.of<SaveActivity>(context);
-    final deleteActivity = Provider.of<DeleteActivity>(context);
-
+    final activityProvider = Provider.of<ActivityProvider>(context);
 
     var children = [
       // Current Date
@@ -481,7 +475,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       SizedBox(height: 32),
 
       // Button
-      _button(saveActivity, deleteActivity),
+      _button(activityProvider),
     ];
 
     return SafeArea(
