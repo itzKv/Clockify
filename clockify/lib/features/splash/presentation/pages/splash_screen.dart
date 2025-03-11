@@ -1,7 +1,7 @@
 import 'package:clockify/features/login/presentation/pages/login_screen.dart';
+import 'package:clockify/features/password/presentation/pages/password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,6 +13,21 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+
+  Route _createRouteForLoginScreen() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: Offset(1.0, 0.0),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        );
+      }
+    );
+  }
 
   @override
   void initState() {
@@ -33,6 +48,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   Future<void> _navigateToNextScreen() async {
     await Future.delayed(Duration(seconds: 3)); // Simulate for over 3 seconds
+    
+    // TEMP
+    // _createRouteForLoginScreen();
 
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
 
