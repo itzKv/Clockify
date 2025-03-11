@@ -21,14 +21,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
   late String _dropdownValue = 'Latest Date';
   late Future<List<ActivityEntity>> _futureActivities;
 
-  void dropdownCallback(String? selectedValue) {
-    if (selectedValue != null) {
-      setState(() {
-        _dropdownValue = selectedValue;
-      });
-    }
-  }
-
   String formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     
@@ -74,7 +66,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  Widget _filterActivity() {
+  Widget _filterActivity(ActivityProvider activityProvider) {
     return Flexible(
       flex: 1,
       child: Container(
@@ -109,7 +101,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: dropdownCallback,
+              onChanged: (String? selectedValue) {
+                setState(() {
+                  _dropdownValue = selectedValue!;
+                  if (selectedValue == 'Latest Date') {
+                    activityProvider.filterByLatestDate();
+                  } else if (selectedValue == 'Nearby') {
+                    activityProvider.filterByNearby();
+                  }
+                });
+              },
             ),
           ),
         ),
@@ -366,7 +367,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         children: [
                           _searchActivity(activityProvider),
                           SizedBox(width: 16,),
-                          _filterActivity(),
+                          _filterActivity(activityProvider),
                         ],
                       ),
                     ),
