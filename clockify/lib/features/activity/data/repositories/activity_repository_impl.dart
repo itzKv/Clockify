@@ -1,3 +1,4 @@
+import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:dartz/dartz.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/repositories/activity_repository.dart';
@@ -10,9 +11,9 @@ class ActivityRepositoryImpl implements ActivityRepository {
   ActivityRepositoryImpl({required this.localDataSource});
 
   @override
-  Future<ActivityEntity?> getActivityById(String id) async {
-    final model = await localDataSource.getActivityById(id);
-    return model?.toEntity();
+  Future<List<ActivityEntity>> getActivityByDescription(String description) async {
+    final models = await localDataSource.getActivityByDescription(description);
+    return models.map((model) => model.toEntity()).toList();
   }
 
   @override

@@ -4,7 +4,7 @@ import 'package:hive/hive.dart';
 abstract class ActivityLocalDataSource {
   Future<void> saveActivity(ActivityModel activity);
   Future<List<ActivityModel>> getAllActivities();
-  Future<ActivityModel?> getActivityById(String id);
+  Future<List<ActivityModel>> getActivityByDescription(String description);
   Future<void> deleteActivity(String id);
 }
 
@@ -19,8 +19,10 @@ class ActivityLocalDataSourceImpl implements ActivityLocalDataSource {
   }
   
   @override
-  Future<ActivityModel?> getActivityById(String id) async {
-    return activityBox.get(id);
+  Future<List<ActivityModel>> getActivityByDescription(String description) async {
+    return activityBox.values
+      .where((activity) => activity.description.toLowerCase().contains(description.toLowerCase()))
+      .toList();
   }
   
   @override

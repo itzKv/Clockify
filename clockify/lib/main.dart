@@ -2,6 +2,7 @@ import 'package:clockify/core/themes/theme.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/repositories/activity_repository.dart';
 import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
+import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/business/usecases/save_activity.dart';
 import 'package:clockify/features/activity/data/datasources/activity_local_data_source.dart';
@@ -35,6 +36,7 @@ void main() async {
   final saveActivity = SaveActivity(activityRepository); 
   final getAllActivities = GetAllActivities(activityRepository);
   final deleteActivity = DeleteActivity(activityRepository);
+  final getActivityByDescription = GetActivityByDescription(activityRepository);
 
   runApp(
     MultiProvider(
@@ -43,7 +45,8 @@ void main() async {
           create: (context) => ActivityProvider(
             getAllActivities: getAllActivities, 
             saveActivity: saveActivity, 
-            deleteActivity: deleteActivity
+            deleteActivity: deleteActivity,
+            getActivityByDescription: getActivityByDescription,
           ),
         )
       ],
