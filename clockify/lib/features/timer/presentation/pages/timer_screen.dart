@@ -1,6 +1,6 @@
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
-import 'package:clockify/features/activity/business/usecases/save_activity.dart';
+import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
@@ -45,7 +45,7 @@ class _TimerScreenState extends State<TimerScreen> {
     debugPrint("This one is running");
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Description must not be empty.")),
+        SnackBar(content: Text("Description must not be empty."), backgroundColor: Colors.red,),
       );
 
       return false;
@@ -378,7 +378,7 @@ class _TimerScreenState extends State<TimerScreen> {
     );
   }
 
-  Widget _button(SaveActivity saveActivity) {
+  Widget _button(ActivityProvider activityProvider) {
     return SizedBox(
       width: double.infinity,
       child: _isTimerStarted
@@ -423,9 +423,15 @@ class _TimerScreenState extends State<TimerScreen> {
                               updatedAt: _endTime!,
                             );
 
+                            // Reset stopwatch
+                            _stopWatchTimer.onResetTimer();
+                            _startTime = null;
+                            _endTime = null;
+                            _descriptionController.text = "";
+
                             // Save
                             try {
-                              saveActivity(activity);
+                              activityProvider.addActivity(activity);
 
                               // Sucess then show dialog
                               if (context.mounted) {
@@ -619,7 +625,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final saveActivity = Provider.of<SaveActivity>(context);
+    final activityProvider = Provider.of<ActivityProvider>(context);
 
     var children = [
       // Stop watch
@@ -640,7 +646,7 @@ class _TimerScreenState extends State<TimerScreen> {
       SizedBox(height: 32),
 
       // Button
-      _button(saveActivity),
+      _button(activityProvider),
     ];
 
     return SafeArea(
