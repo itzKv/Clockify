@@ -1,11 +1,12 @@
 import 'dart:math';
-
+import 'dart:async';
+import 'dart:isolate';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
 import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/business/usecases/save_activity.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 class ActivityProvider extends ChangeNotifier {
@@ -24,9 +25,11 @@ class ActivityProvider extends ChangeNotifier {
         _deleteActivity = deleteActivity,
         _getActivityByDescription = getActivityByDescription;
 
-  List<ActivityEntity> _activities = [];
-  List<ActivityEntity> _filteredActivities = [];
+  List<ActivityEntity> _activities = []; // Original Data
+  List<ActivityEntity> _filteredActivities = []; // Filtered Data
   bool _isFiltering = false;
+  String _searchQuery = "";
+  String _seletedFilter = "Latest Date";
 
   List<ActivityEntity> get activities => _isFiltering ? _filteredActivities : _activities;
   bool get isSearching => _isFiltering;
@@ -63,9 +66,36 @@ class ActivityProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void searchActivity(String query) {
+    _searchQuery = query.toLowerCase();
+    _applyFilters();
+  }
+
+  void setFilter(String filter) {
+    _seletedFilter = filter;
+    _applyFilters();
+  }
+
+  void _applyFilters() {
+    // 1. Apply Searching Filter 
+    _filteredActivities = _activities.where((activity) {
+      return activity.description.toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    // 2. Sort based on the selected filter
+    if (_seletedFilter == "Latest Date") {
+      filterByLatestDate();
+    } else if (_seletedFilter == "Nearby") {
+      filterByNearby();
+    }
+
+    _isFiltering = _searchQuery.isNotEmpty || _seletedFilter != "Latest Date";
+    notifyListeners();
+  }
+
   void filterByLatestDate() {
     _isFiltering = true;
-    _filteredActivities = List.from(_activities)..sort((a, b) => b.startTime.compareTo(a.startTime));
+    _filteredActivities.sort((a, b) => b.endTime.compareTo(a.endTime));
     notifyListeners();
   }
   
@@ -76,18 +106,31 @@ class ActivityProvider extends ChangeNotifier {
       );
 
       _isFiltering = true;
-      _filteredActivities = List.from(_activities)..sort(
-        (a, b) {
-          double distanceA = _calculateDistance(position.latitude, position.longitude, a.locationLat!, a.locationLng!);
-          double distanceB = _calculateDistance(position.latitude, position.longitude, b.locationLat!, b.locationLng!);
-          return distanceA.compareTo(distanceB); // Sort by nearest first
-        },
-      );
+
+      // Run on a different isolate. Meaning that it will not consume another time.
+      _filteredActivities = await compute(_sortActivitiesByDistance, {
+        "activities": _activities,
+        "lat": position.latitude,
+        "lng": position.longitude,
+      });
 
       notifyListeners();
     } catch (e) {
       debugPrint("Error getting location: $e");
     }
+  }
+
+  // Helper function for isolating processing
+  List<ActivityEntity> _sortActivitiesByDistance(Map<String, dynamic> data) {
+    List<ActivityEntity> activities = List.from(data['activities']);
+    double lat = data["lat"];
+    double lng = data["lng"];
+
+    return activities..sort((a,b) {
+      double distanceA = _calculateDistance(lat, lng, a.locationLat!, a.locationLng!);
+      double distanceB = _calculateDistance(lat, lng, b.locationLat!, b.locationLng!);
+      return distanceA.compareTo(distanceB);
+    });
   }
 
   void resetFilters() {
@@ -96,10 +139,10 @@ class ActivityProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(double lat1, double lng1, double lat2, double lng2) {
     const double R = 6371; // Earth radius in km
     double dLat = _degToRad(lat2 - lat1);
-    double dLon = _degToRad(lon2 - lon1);
+    double dLon = _degToRad(lng2 - lng1);
 
     double a = 
         (sin(dLat / 2) * sin(dLat / 2)) +
