@@ -4,6 +4,7 @@ import 'package:clockify/features/activity/business/usecases/delete_activity.dar
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -18,16 +19,9 @@ class ActivityScreen extends StatefulWidget {
 
 class _ActivityScreenState extends State<ActivityScreen> {
   final DateFormat timeFormatter = DateFormat('HH:mm:ss'); 
+  final DateFormat dateFormatter = DateFormat('d MMM yy'); 
   late String _dropdownValue = 'Latest Date';
-  late Future<List<ActivityEntity>> _futureActivities;
-
-  void dropdownCallback(String? selectedValue) {
-    if (selectedValue != null) {
-      setState(() {
-        _dropdownValue = selectedValue;
-      });
-    }
-  }
+  final FocusNode _focusNode = FocusNode();
 
   String formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -37,6 +31,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     
     return "$hours : $minutes : $seconds";
+  }
+
+  void _toggleKeyboard() {
+    if (_focusNode.hasFocus) {
+      // Close keyboard if it's on
+      _focusNode.unfocus();
+    } else {
+      // Open keyboard if it's on
+      FocusScope.of(context).requestFocus(_focusNode);
+    }
   }
 
   Widget _searchActivity(ActivityProvider activityProvider) {
@@ -53,20 +57,24 @@ class _ActivityScreenState extends State<ActivityScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: TextFormField(
             onChanged: (value) {
-              activityProvider.getActivityByDescription(value);
+              activityProvider.searchActivity(value);
             },
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: "Search activity",
               hintStyle: TextStyle(
                 color: Color(0xffA7A6C5),
                 fontWeight: FontWeight.w400,
                 fontSize: 14,
               ),
-              suffixIcon: Icon(
-                Icons.search,
-                color: Color(0xff25367B),
+              suffixIcon: GestureDetector(
+                onTap: _toggleKeyboard,
+                child: Icon(
+                  Icons.search,
+                  color: Color(0xff25367B),
+                ),
               ),
               border: InputBorder.none, // Removes default border
+              contentPadding: EdgeInsets.symmetric(vertical: 12)
             ),
           ),
         ),
@@ -74,7 +82,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  Widget _filterActivity() {
+  Widget _filterActivity(ActivityProvider activityProvider) {
     return Flexible(
       flex: 1,
       child: Container(
@@ -109,7 +117,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: dropdownCallback,
+              onChanged: (String? selectedValue) {
+                setState(() {
+                  _dropdownValue = selectedValue!;
+                  activityProvider.setFilter(_dropdownValue);
+                });
+              },
             ),
           ),
         ),
@@ -169,12 +182,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   if (context.mounted) {
                     showDialog(
                       context: context,
+                      barrierDismissible: false, // Prevent any dismmising by tapping outside
                       builder: (context) {
                         Future.delayed(Duration(seconds: 3), () async {
-                          if (Navigator.canPop(context)) {
-                            Navigator.pop(context); // Close the dialog
-                          }
-
                           if (context.mounted) {
                               Navigator.pop(context); // Close the Activity Detail Screen
                             }
@@ -224,7 +234,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                             formatDuration((activity.endTime.difference(activity.startTime))),
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -270,10 +280,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
+                            maxLines: 1,
                             activity.description,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -305,7 +316,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               SizedBox(height: 2,),
 
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   height: 1,
                   width: double.infinity,
@@ -338,11 +349,50 @@ class _ActivityScreenState extends State<ActivityScreen> {
             );
           }
 
+          // 1. Group activities by date
+          Map<String, List<ActivityEntity>> groupedActivities = {};
+          for (var activity in activities) {
+            String dateKey = DateFormat('yyyy-MM-dd').format(activity.endTime);
+            groupedActivities.putIfAbsent(dateKey, () => []).add(activity);
+          }
+
+
+          // 2. Sort dates (latest first)
+          List<String> sortedDates = groupedActivities.keys.toList()
+            ..sort((a, b) => b.compareTo(a)); // Descending
+
           return ListView.builder(
-            itemCount: activities.length,
+            itemCount: sortedDates.length,
             itemBuilder: (context, index) {
-              final activity = activities[index];
-              return _activityInfo(activity, activityProvider);
+              String dateKey = sortedDates[index];
+              List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date Header
+                  Container(
+                    width: double.infinity,
+                    height: 24,
+                    color: Color(0xff434B8C),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                      child: Text(
+                        dateFormatter.format(DateTime.parse(dateKey)),
+                        style: TextStyle(
+                          color: Color(0xffF8D068),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // List of activities for that date
+                  ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
+                ],
+              );
+              // return _activityInfo(activity, activityProvider);
             },
           );
         }
@@ -366,7 +416,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         children: [
                           _searchActivity(activityProvider),
                           SizedBox(width: 16,),
-                          _filterActivity(),
+                          _filterActivity(activityProvider),
                         ],
                       ),
                     ),

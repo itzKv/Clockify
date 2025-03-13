@@ -72,26 +72,26 @@ class _PasswordScreenState extends State<PasswordScreen> {
   }
 
   void _loginSucceess(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierDismissible: false, 
-    builder: (context) {
-      Future.delayed(Duration(seconds: 3), () async {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context); // Close the dialog
-          Navigator.of(context).push(
-            _createRouteForHomeScreen()
-          );
-        }
-      });
+    showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (context) {
+        Future.delayed(Duration(seconds: 3), () async {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context); // Close the dialog
+            Navigator.of(context).push(
+              _createRouteForHomeScreen()
+            );
+          }
+        });
 
-      return SuccessDialog(
-        title: "Hello",
-        message: "Welcome back.",
-      );
-    },
-  );
-}
+        return SuccessDialog(
+          title: "Hello",
+          message: "Welcome back.",
+        );
+      },
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -130,6 +130,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
 
             // Password
             Form(
+              key: _formKey,
               child: TextFormField(
                 controller: _passwordController,
                 obscureText: _isObscure,
@@ -181,11 +182,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
               ),
 
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    _createRouteForHomeScreen()
-                  );
-                },
+                onPressed: _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,

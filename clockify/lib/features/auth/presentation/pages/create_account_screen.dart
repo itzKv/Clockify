@@ -1,5 +1,8 @@
+import 'package:clockify/core/params/params.dart';
 import 'package:clockify/core/themes/theme.dart';
+import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -54,56 +57,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     return null;
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Navigate to Main Screen'),),
-      );
-      // Navigate to Timer Screen
-      // _createAccountSuccess(context,);
-    }
-  }
-
-//   Route _createRouteForTimerScreen() {
-//     return PageRouteBuilder(
-//       pageBuilder: (context, animation, secondaryAnimation) => TimerScreen(),
-//       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-//         const begin = Offset(1.0, 0.0);
-//         const end = Offset.zero;
-//         const curve = Curves.easeInOut;
-
-//         var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-//         var offsetAnimation = animation.drive(tween);
-
-//         return SlideTransition(
-//           position: offsetAnimation,
-//           child: child,
-//         );
-//       },
-//     );
-//   }
-
-//   void _createAccountSuccess(BuildContext context) {
-//   showDialog(
-//     context: context,
-//     barrierDismissible: false, 
-//     builder: (context) {
-//       Future.delayed(Duration(seconds: 3), () async {
-//         if (Navigator.canPop(context)) {
-//           Navigator.pop(context); // Close the dialog
-//           Navigator.push(context, _createRouteForTimerScreen());
-//         }
-//       });
-
-//       return SuccessDialog(
-//         title: "Success",
-//         message: "Your account has been successfully created.",
-//       );
-//     },
-//   );
-// }
-
-
   // Prevent memory leaks
   @override
   void dispose() {
@@ -115,6 +68,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       backgroundColor: appTheme.secondaryHeaderColor,
       appBar: AppBar(
@@ -231,41 +186,64 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             ),
 
             // Pushes the button to the bottom
-            Padding(
-              padding: EdgeInsets.all(20),
-              child: Container(
-                height: 48,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: LinearGradient(
-                    colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color.fromARGB(10, 0, 0, 0),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                      offset: Offset(0.0, 2.0),
-                    )
-                  ]
-                ),
-                child: ElevatedButton(
-                  onPressed: _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                return Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Container(
+                    height: 48,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color.fromARGB(10, 0, 0, 0),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                          offset: Offset(0.0, 2.0),
+                        )
+                      ]
+                    ),
+                    child: ElevatedButton(
+                      onPressed: authProvider.isLoading 
+                      ? null // Disable button when loading
+                      : () {
+                        if (_formKey.currentState!.validate()) {
+                          String email = _emailController.text.trim();
+                          String password = _passwordController.text;
+
+                          RegisterParams registerParams = RegisterParams(
+                            email: email, 
+                            password: password
+                          );
+
+                          authProvider.registerUser(context, registerParams);
+                        
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: authProvider.isLoading
+                      ? CircularProgressIndicator(
+                        color: Colors.white,
+                      ) 
+                      : Text(
+                        "CREATE",
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
-                  child: Text(
-                    "CREATE",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ),
+                );
+              } 
+            )
           ],
         ),
       ),

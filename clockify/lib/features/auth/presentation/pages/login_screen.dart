@@ -1,7 +1,10 @@
-import 'package:clockify/features/create_account/presentation/pages/create_account_screen.dart';
-import 'package:clockify/features/password/presentation/pages/password_screen.dart';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:clockify/features/auth/presentation/pages/create_account_screen.dart';
+import 'package:clockify/features/auth/presentation/pages/password_screen.dart';
+import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +15,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   Route _createRouteForCreateAccount() {
   return PageRouteBuilder(
@@ -51,6 +55,51 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email is required.';
+    }
+    final emailRegex = RegExp(r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$');
+
+    if (!emailRegex.hasMatch(value.toLowerCase())) {
+      return 'Enter a valid email.';
+    }
+
+    return null;
+  }
+
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      // Verify the email
+      // final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      // authProvider.verifyEmail(_emailController.text);
+      
+      final snackBar = SnackBar(
+        elevation: 0,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent,
+        content: AwesomeSnackbarContent(
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+          ),
+          title: "Hi there", 
+          message: "Hello welcome back!", 
+          contentType: ContentType.success
+        ),
+      );
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(snackBar);
+
+      Future.delayed(Duration(seconds: 2, microseconds: 600), () {
+        // Navigate to Password Screen
+        Navigator.of(context).push(_createRouteForPasswordScreen());
+      });
+    }
+  }
+  
   @override
   void dispose() {
     _emailController.dispose();
@@ -59,28 +108,33 @@ class _LoginScreenState extends State<LoginScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 80),
-              // Logo
-              child: SizedBox(
-                height: 80,
-                width: 260,
-                child: Image.asset('assets/images/Logo.png'),
-              ),
-            ),
-
-            const SizedBox(height: 100),
-
-            // Email 
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
+                SizedBox(height: 48,),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Padding(
+                        padding: EdgeInsets.only(top: 80),
+                        // Logo
+                        child: SizedBox(
+                          height: 80,
+                          width: 260,
+                          child: Image.asset('assets/images/Logo.png'),
+                        ),
+                  ),
+                ),
+
+                SizedBox(height: 320),
+
                 Row(
                   children: [
                     SvgPicture.asset(
@@ -92,42 +146,35 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Padding(
-                          //   padding: EdgeInsets.only(bottom: 4),
-                          //   child: Text(
-                          //     "E-mail",
-                          //     style: TextStyle(
-                          //       color: Colors.white,
-                          //       fontSize: 14,
-                          //       fontWeight: FontWeight.w700
-                          //     ),
-                          //   )
-                          // ),
                           Padding(
                             padding: EdgeInsets.only(left: 10, right: 10),
-                            child: TextFormField(
-                              controller: _emailController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                floatingLabelBehavior: FloatingLabelBehavior.auto,
-                                labelText: "Email",
-                                labelStyle: const TextStyle(
-                                  color: Colors.white, 
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700
+                            child: Form(
+                              key: _formKey,
+                              child: TextFormField(
+                                controller: _emailController,
+                                validator: _validateEmail,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  floatingLabelBehavior: FloatingLabelBehavior.auto,
+                                  labelText: "Email",
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white, 
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700
+                                  ),
+                                  enabledBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.white, width: 2)
+                                  )
                                 ),
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.white, width: 2)
-                                )
                               ),
-                            ),
+                            )
                           )
                         ],
                       )
                     )
                   ],
                 ),
-                SizedBox(height: 40,),
+                SizedBox(height: 48,),
                 
                 // Login Button
                 Container(
@@ -142,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.push(context, _createRouteForPasswordScreen());
+                      authProvider.verifyEmail(_emailController.text);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
@@ -160,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Create new account
                 TextButton(
                   onPressed: () {
-                      Navigator.push(context, _createRouteForCreateAccount());
+                    Navigator.push(context, _createRouteForCreateAccount());
                   },
                   child: Text(
                     "Create new account?",
@@ -174,10 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   )
                 ),
 
-                SizedBox(height: 40,),
+                SizedBox(height: 20,),
               ],
-            ),   
-          ],
+            ),
+          )
         ),
       )
     );

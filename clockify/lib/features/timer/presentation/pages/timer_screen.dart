@@ -437,6 +437,7 @@ class _TimerScreenState extends State<TimerScreen> {
                               if (context.mounted) {
                                 showDialog(
                                   context: context,
+                                  barrierDismissible: false, // Prevent any dismmising by tapping outside
                                   builder: (context) {
                                     Future.delayed(Duration(seconds: 3), () async {
                                       if (Navigator.canPop(context)) {
@@ -647,6 +648,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
       // Button
       _button(activityProvider),
+      SizedBox(height: 16),
     ];
 
     return SafeArea(
