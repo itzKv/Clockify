@@ -1,11 +1,6 @@
-import 'package:clockify/features/activity/business/entities/activity_entity.dart';
-import 'package:clockify/features/activity/business/repositories/activity_repository.dart';
-import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
-import 'package:clockify/features/activity/business/usecases/save_activity.dart';
 import 'package:clockify/features/activity/presentation/pages/activity_screen.dart';
 import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
 
@@ -32,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             SizedBox(height: 16,),
+
             // Navigation Text Button
             Container(
               padding: EdgeInsets.symmetric(vertical: 10),
@@ -64,30 +60,30 @@ class _HomeScreenState extends State<HomeScreen> {
     bool isSelected = _selectedIndex == index;
 
     return TextButton(
-      onPressed: () {},  
-      child: TextButton(
-        onPressed: () { setState(() {
+      onPressed: () {
+        setState(() {
           _selectedIndex = index;
-        });},
-        child: Container(
-          padding: EdgeInsets.only(bottom: 1),
-          decoration: isSelected ? BoxDecoration(
-            border: Border(bottom: BorderSide(
-              color: Color(0xffF8D068),
-              width: 2,
-            ))
-          ) : BoxDecoration(
-            color: Colors.transparent,
-          ),
-          child: Text(
+        });
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min, 
+        children: [
+          Text(
             text,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: isSelected ? Color(0xffF8D068) : Color(0xffA7A6C5),
-            ),  
+            ),
           ),
-        )
+          SizedBox(height: 2), 
+          if (isSelected) 
+            Container(
+              width: 40,
+              height: 1.5, 
+              color: Color(0xffF8D068),
+            ),
+        ],
       ),
     );
   }
