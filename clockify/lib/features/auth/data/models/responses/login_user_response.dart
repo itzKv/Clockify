@@ -22,14 +22,16 @@ class LoginUserResponse {
         status: json['status'],
         message: json['message'],
         user: json['user'] != null ? UserModel.fromJson(json: json['user']) : null,
-        token: json.containsKey("token") ? json['token'] : null,
+        token: json.containsKey("token") ? json['token'] : "",
       );
     } else {
       return LoginUserResponse(
         status: json['status'],
         errors: (json['errors']['message'] != null)
           ? {'message': ErrorDetail.fromJson({'message': json['errors']['message']})}
-          : null
+          : null,
+        user: null,
+        token: null
       );
     }
   }
@@ -38,16 +40,19 @@ class LoginUserResponse {
 class LoginResult  {
   final UserModel user;
   final String message;
+  final String token;
 
   LoginResult({
     required this.user,
     required this.message,
+    required this.token,
   });
 
   factory LoginResult.fromJson(Map<String, dynamic> json) {
     return LoginResult(
       user: UserModel.fromJson(json: json['user']),
       message: json['message'] ?? "",
+      token: json["token"] ?? "", 
     );
   }
 }
