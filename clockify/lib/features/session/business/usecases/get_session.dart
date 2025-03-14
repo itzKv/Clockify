@@ -6,7 +6,7 @@ class GetSession {
 
   GetSession(this.repository);
 
-  SessionModel? call() {
-    return repository.getSession();
+  Future<SessionModel?> call() async {
+    return await repository.getSession();
   }
 }
