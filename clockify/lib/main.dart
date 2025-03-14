@@ -68,6 +68,11 @@ void main() async {
   final saveSession = SaveSession(sessionRepository);
   final getSession = GetSession(sessionRepository);
   final clearSession = ClearSession(sessionRepository);
+  final sessionProvider = SessionProvider(
+    saveSession: saveSession, 
+    getSession: getSession, 
+    clearSession: clearSession
+  );
 
     // AUTH
   final loginUsecase = Login(authRepository);
@@ -90,13 +95,14 @@ void main() async {
             saveSession: saveSession, 
             getSession: getSession, 
             clearSession: clearSession,
-          )..loadSession(), // load session when app starts
+          )..loadUserSession(), // load session when app starts
         ),
         ChangeNotifierProvider(
           create: (context) => AuthProvider(
             login: loginUsecase, 
             register: registerUsecase, 
-            verifyEmail: verifyEmailUsecase
+            verifyEmail: verifyEmailUsecase,
+            sessionProvider: sessionProvider
           ),
         )
       ],
