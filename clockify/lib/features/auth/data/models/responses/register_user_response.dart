@@ -1,8 +1,10 @@
 
+import 'package:clockify/features/auth/data/models/user_model.dart';
+
 class RegisterUserResponse {
   final String status;
   final String? message;
-  final UserData? user;
+  final UserModel? user;
   final String? emailToken;
   final Map<String, ErrorDetail>? errors;
 
@@ -19,7 +21,7 @@ class RegisterUserResponse {
       return RegisterUserResponse(
         status: json['status'],
         message: json['message'],
-        user: json['user'] != null ? UserData.fromJson(json['user']) : null,
+        user: json['user'] != null ? UserModel.fromJson(json: json['user']) : null,
         emailToken: json['emailToken'],
       );
     } else {
@@ -31,24 +33,7 @@ class RegisterUserResponse {
       );
     }
   }
-
 }
-
-
-class UserData {
-  final String uuid;
-  final String email;
-
-  UserData({required this.uuid, required this.email});
-
-  factory UserData.fromJson(Map<String, dynamic> json) {
-    return UserData(
-      uuid: json["uuid"],
-      email: json["email"],
-    );
-  }
-}
-
 
 class ErrorDetail {
   final String type;
