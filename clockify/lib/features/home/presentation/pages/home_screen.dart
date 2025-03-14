@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:clockify/features/activity/presentation/pages/activity_screen.dart';
 import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
@@ -13,45 +15,75 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
+  void _onPopInvokedWithResult(bool didPop, dynamic result) {
+    if (didPop) return; // Block back navigation
+
+    _showExitDialog();
+  }
+
+  Future<void> _showExitDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Exit App"),
+        content: Text("Are you sure you want to exit?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => exit(0), // Close the app
+            child: Text("Exit"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(
-              height: 64,
-              child: Center(
-                child: Image.asset('assets/images/Logo-2.png'),
+    return PopScope(
+      canPop: false, // Block navigates back
+      onPopInvokedWithResult: _onPopInvokedWithResult,
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              SizedBox(
+                height: 64,
+                child: Center(
+                  child: Image.asset('assets/images/Logo-2.png'),
+                ),
               ),
-            ),
 
-            SizedBox(height: 16,),
+              SizedBox(height: 16,),
 
-            // Navigation Text Button
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                // Navigation Item
-                children: [
-                  _buildNavItem("TIMER", 0),
-                  _buildNavItem("ACTIVITY", 1),
-                ],
-              ),
-            ),            
-            // Content
-            Expanded(
-              child: IndexedStack(
-                index: _selectedIndex,
-                children: [
-                  TimerScreen(),
-                  ActivityScreen()
-                ],
-              ) ,
-            )
-          ],
-        ),
+              // Navigation Text Button
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  // Navigation Item
+                  children: [
+                    _buildNavItem("TIMER", 0),
+                    _buildNavItem("ACTIVITY", 1),
+                  ],
+                ),
+              ),            
+              // Content
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedIndex,
+                  children: [
+                    TimerScreen(),
+                    ActivityScreen()
+                  ],
+                ) ,
+              )
+            ],
+          ),
+        )
       )
     );
   }
