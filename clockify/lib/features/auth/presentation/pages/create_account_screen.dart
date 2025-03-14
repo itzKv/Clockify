@@ -68,8 +68,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
     return Scaffold(
       backgroundColor: appTheme.secondaryHeaderColor,
       appBar: AppBar(
@@ -221,7 +219,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           );
 
                           authProvider.registerUser(context, registerParams);
-                        
                         }
                       },
                       style: ElevatedButton.styleFrom(

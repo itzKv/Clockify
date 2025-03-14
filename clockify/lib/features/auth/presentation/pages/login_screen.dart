@@ -1,4 +1,4 @@
-import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:clockify/core/params/params.dart';
 import 'package:clockify/features/auth/presentation/pages/create_account_screen.dart';
 import 'package:clockify/features/auth/presentation/pages/password_screen.dart';
 import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       },
     );
   }
-
+  
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required.';
@@ -67,38 +67,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return null;
   }
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      // Verify the email
-      // final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      // authProvider.verifyEmail(_emailController.text);
-      
-      final snackBar = SnackBar(
-        elevation: 0,
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        content: AwesomeSnackbarContent(
-          titleTextStyle: TextStyle(
-            fontSize: 20,
-          ),
-          title: "Hi there", 
-          message: "Hello welcome back!", 
-          contentType: ContentType.success
-        ),
-      );
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
-
-      Future.delayed(Duration(seconds: 2, microseconds: 600), () {
-        // Navigate to Password Screen
-        Navigator.of(context).push(_createRouteForPasswordScreen());
-      });
-    }
-  }
   
   @override
   void dispose() {
@@ -108,7 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
   
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -123,13 +90,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Padding(
-                        padding: EdgeInsets.only(top: 80),
-                        // Logo
-                        child: SizedBox(
-                          height: 80,
-                          width: 260,
-                          child: Image.asset('assets/images/Logo.png'),
-                        ),
+                    padding: EdgeInsets.only(top: 80),
+                    // Logo
+                    child: SizedBox(
+                      height: 80,
+                      width: 260,
+                      child: Image.asset('assets/images/Logo.png'),
+                    ),
                   ),
                 ),
 
@@ -153,6 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: TextFormField(
                                 controller: _emailController,
                                 validator: _validateEmail,
+                                keyboardType: TextInputType.emailAddress,
                                 style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   floatingLabelBehavior: FloatingLabelBehavior.auto,
@@ -177,29 +145,55 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(height: 48,),
                 
                 // Login Button
-                Container(
-                  height: 48,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      colors: [Color(0xff45CDDC), Color(0xff2EBED9)]
-                    )
-                  ),
-
-                  child: ElevatedButton(
-                    onPressed: () {
-                      authProvider.verifyEmail(_emailController.text);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return Container(
+                      height: 48,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                      )
-                    ),  
-                    child: Text("SIGN IN", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),),
-                  ),
+                        gradient: LinearGradient(
+                          colors: [Color(0xff45CDDC), Color(0xff2EBED9)]
+                        )
+                      ),
+
+                      child: ElevatedButton(
+                        onPressed: authProvider.isLoading 
+                          ? null
+                          : () {
+                            if (_formKey.currentState!.validate()) {
+                              String email = _emailController.text.trim();
+
+                              LoginParams loginParams = LoginParams(
+                                email: email, 
+                                password: "" // There is no password form in Login Screen, hence fill with empty string 
+                              );
+
+                              authProvider.loginUser(context, loginParams);
+                            }
+                          },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        ),  
+                        child: authProvider.isLoading 
+                          ? CircularProgressIndicator(
+                            color: Colors.white,
+                          )
+                          : Text(
+                            "SIGN IN", 
+                            style: TextStyle(
+                              color: Colors.white, 
+                              fontSize: 16, 
+                              fontWeight: FontWeight.w700
+                            ),
+                          ),
+                      ),
+                    );
+                  },
                 ),
 
                 SizedBox(height: 40,),
