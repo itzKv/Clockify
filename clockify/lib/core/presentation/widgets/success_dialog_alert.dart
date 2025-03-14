@@ -21,7 +21,7 @@ class SuccessDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset('assets/images/success@1x.png'),
+              Image.asset('assets/images/success@2x.png'),
               SizedBox(height: 24,),
               Text(
                 title,

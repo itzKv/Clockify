@@ -10,7 +10,6 @@ import 'package:clockify/features/activity/data/models/activity_model.dart';
 import 'package:clockify/features/activity/data/repositories/activity_repository_impl.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:clockify/features/activity_detail/presentation/pages/activity_detail_screen.dart';
-import 'package:clockify/features/auth/business/repositories/auth_repository.dart';
 import 'package:clockify/features/auth/business/usecases/login.dart';
 import 'package:clockify/features/auth/business/usecases/register.dart';
 import 'package:clockify/features/auth/business/usecases/verify_email.dart';
@@ -29,7 +28,6 @@ import 'package:clockify/features/session/data/models/session_model.dart';
 import 'package:clockify/features/session/data/repositories/session_repository_impl.dart';
 import 'package:clockify/features/session/presentation/providers/session_provider.dart';
 import 'package:clockify/features/splash/presentation/pages/splash_screen.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -70,6 +68,11 @@ void main() async {
   final saveSession = SaveSession(sessionRepository);
   final getSession = GetSession(sessionRepository);
   final clearSession = ClearSession(sessionRepository);
+  final sessionProvider = SessionProvider(
+    saveSession: saveSession, 
+    getSession: getSession, 
+    clearSession: clearSession
+  );
 
     // AUTH
   final loginUsecase = Login(authRepository);
@@ -92,13 +95,14 @@ void main() async {
             saveSession: saveSession, 
             getSession: getSession, 
             clearSession: clearSession,
-          )..loadSession(), // load session when app starts
+          )..loadUserSession(), // load session when app starts
         ),
         ChangeNotifierProvider(
           create: (context) => AuthProvider(
             login: loginUsecase, 
             register: registerUsecase, 
-            verifyEmail: verifyEmailUsecase
+            verifyEmail: verifyEmailUsecase,
+            sessionProvider: sessionProvider
           ),
         )
       ],

@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 
 abstract class SessionLocalDataSource {
    Future<void> saveSession(SessionModel session);
-   SessionModel? getSession();
+   Future<SessionModel?> getSession();
    Future<void> clearSession();
 }
 
@@ -18,7 +18,7 @@ class SessionLocalDataSourceImpl implements SessionLocalDataSource {
   }
 
   @override
-  SessionModel? getSession() {
+  Future<SessionModel?> getSession() async {
     return sessionBox.get('session');
   }
 

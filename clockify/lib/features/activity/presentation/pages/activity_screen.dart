@@ -313,7 +313,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   ],
                 ),
               ),
-              SizedBox(height: 2,),
+              
+              SizedBox(height: 4,),
 
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),

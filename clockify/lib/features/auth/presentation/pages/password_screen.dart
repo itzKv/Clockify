@@ -1,7 +1,10 @@
+import 'package:clockify/core/params/params.dart';
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/core/themes/theme.dart';
+import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
 import 'package:clockify/features/home/presentation/pages/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class PasswordScreen extends StatefulWidget {
   const PasswordScreen({super.key});
@@ -36,20 +39,6 @@ class _PasswordScreenState extends State<PasswordScreen> {
     }
     
     return null;
-  }
-
-  void _submitForm() {
-    if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
-      return; // Stop execution if formKey is null or validation fails
-    }
-
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Navigate to Main Screen'),),
-      );
-      // Navigate to Timer Screen
-      _loginSucceess(context,);
-    }
   }
 
   Route _createRouteForHomeScreen() {
@@ -95,7 +84,8 @@ class _PasswordScreenState extends State<PasswordScreen> {
   
   @override
   Widget build(BuildContext context) {
-
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final email = args?['email'] ?? "No email provided";
     return Scaffold(
       backgroundColor: appTheme.secondaryHeaderColor,
       appBar: AppBar(
@@ -171,27 +161,49 @@ class _PasswordScreenState extends State<PasswordScreen> {
             SizedBox(height: 40,),
             
             // Button
-            Container(
-              height: 48,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [Color(0xff45CDDC), Color(0xff2EBED9)]
-                )
-              ),
-
-              child: ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                return Container(
+                  height: 48,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                  )
-                ),
-                child: Text("OK", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),),
-              ),
+                    gradient: LinearGradient(
+                      colors: [Color(0xff45CDDC), Color(0xff2EBED9)]
+                    )
+                  ),
+
+                  child: ElevatedButton(
+                    onPressed: authProvider.isLoading 
+                      ? null
+                      : () {
+                          if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
+                            return; // Stop execution if formKey is null or validation fails
+                          }
+
+                          if (_formKey.currentState!.validate()) {
+                            debugPrint("Email in Password Screen: $email");
+
+                            LoginParams loginParams = LoginParams(
+                              email: email, 
+                              password: _passwordController.text,
+                            );
+
+                            // Navigate to Timer Screen
+                            authProvider.loginUser(context, loginParams);
+                          }
+                        },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      )
+                    ),
+                    child: Text("OK", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),),
+                  ),
+                );
+              }
             ),
             
             SizedBox(height: 40,),
