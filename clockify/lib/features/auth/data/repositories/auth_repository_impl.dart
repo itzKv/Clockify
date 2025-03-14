@@ -17,7 +17,7 @@ class AuthRepositoryImpl extends AuthRepository {
   Future<Either<Failure, LoginResult>> login({required LoginParams loginParams}) async {
     try {
       final response = await remoteDataSource.login(loginParams: loginParams);
-      return Right(LoginResult(user: response.user!, message: response.message!));
+      return Right(LoginResult(user: response.user!, message: response.message!, token: response.token!));
     } catch (e) {
       if (e is ServerFailure) {
         return Left(ServerFailure(e.errorData, errorMessage: e.errorMessage));

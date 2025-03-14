@@ -8,19 +8,24 @@ import 'package:clockify/features/auth/business/usecases/verify_email.dart';
 import 'package:clockify/features/auth/presentation/pages/login_screen.dart';
 import 'package:clockify/features/auth/presentation/widgets/verify_email_dialog.dart';
 import 'package:clockify/features/home/presentation/pages/home_screen.dart';
+import 'package:clockify/features/session/data/models/session_model.dart';
+import 'package:clockify/features/session/presentation/providers/session_provider.dart';
 import 'package:flutter/material.dart';
 
 class AuthProvider extends ChangeNotifier {
   final Login login;
   final Register register;
   final VerifyEmail verifyEmail;
+  final SessionProvider sessionProvider;
 
-  AuthProvider({ required this.login, required this.register, required this.verifyEmail });
+  AuthProvider({ required this.login, required this.register, required this.verifyEmail, required this.sessionProvider });
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  Future<void> loginUser(BuildContext context, LoginParams loginParams) async {
+  bool get isAuthenticated => sessionProvider.isAuthenticated;
+
+  Future<bool> loginUser(BuildContext context, LoginParams loginParams) async {
     _isLoading = true;
     notifyListeners();
 
@@ -158,6 +163,23 @@ class AuthProvider extends ChangeNotifier {
           });   
         }
         else if (result.message.contains("User logged in")) {
+          try {
+            // Parse expiry time
+            final expiryDate = DateTime.now().add(Duration(days: 1, hours: 12));
+
+            final session = SessionModel(
+              token: result.token, 
+              userId: result.user.uuid, 
+              expiryDate: expiryDate,
+            );
+
+            // save session
+            sessionProvider.saveSession(session);
+            sessionProvider.getSession();
+          } catch (e) {
+            return false;
+          }
+
           // Show success dialog
           showDialog(
             context: context, 
@@ -207,38 +229,9 @@ class AuthProvider extends ChangeNotifier {
       },
     );
 
-    // // Check if the error is Registered Email
-    // if (errorMessage.contains("Email already exists")) {
-    //   final snackBar = SnackBar(
-    //     elevation: 0,
-    //     duration: Duration(seconds: 2),
-    //     behavior: SnackBarBehavior.floating,
-    //     backgroundColor: Colors.transparent,
-    //     content: AwesomeSnackbarContent(
-    //       titleTextStyle: TextStyle(
-    //         fontSize: 20,
-    //       ),
-    //       title: "Hello there", 
-    //       message: "You already registered!", 
-    //       contentType: ContentType.help
-    //     ),
-    //   );
-
-    //   ScaffoldMessenger.of(context)
-    //     ..hideCurrentSnackBar()
-    //     ..showSnackBar(snackBar);
-
-    //   Future.delayed(Duration(seconds: 2, microseconds: 600), () {
-    //     // Navigate to Password Screen
-    //     Navigator.pushReplacement(
-    //       context,
-    //       MaterialPageRoute(builder: (context) => LoginScreen())
-    //     );
-    //   });
-    // }
-
     _isLoading = false;
     notifyListeners();
+    return true;
   }
 
   Future<void> registerUser(BuildContext context, RegisterParams registerParams) async {

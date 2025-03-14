@@ -2,6 +2,8 @@ import 'package:clockify/core/params/params.dart';
 import 'package:clockify/features/auth/presentation/pages/create_account_screen.dart';
 import 'package:clockify/features/auth/presentation/pages/password_screen.dart';
 import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
+import 'package:clockify/features/home/presentation/pages/home_screen.dart';
+import 'package:clockify/features/session/presentation/providers/session_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -18,27 +20,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
   Route _createRouteForCreateAccount() {
-  return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => CreateAccountScreen(),
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(1.0, 0.0);
-      const end = Offset.zero;
-      const curve = Curves.easeInOut;
-
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      var offsetAnimation = animation.drive(tween);
-
-      return SlideTransition(
-        position: offsetAnimation,
-        child: child,
-      );
-    }
-  );
-  }
-  
-  Route _createRouteForPasswordScreen() {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => PasswordScreen(),
+      pageBuilder: (context, animation, secondaryAnimation) => CreateAccountScreen(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(1.0, 0.0);
         const end = Offset.zero;
@@ -51,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
           position: offsetAnimation,
           child: child,
         );
-      },
+      }
     );
   }
   
@@ -68,6 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
   
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () async {
+      final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+      await sessionProvider.checkSession();
+      debugPrint("Is Authenticdated: ${sessionProvider.isAuthenticated}");
+      if (sessionProvider.isAuthenticated) {
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(builder: (context) => HomeScreen())
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -160,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: ElevatedButton(
                         onPressed: authProvider.isLoading 
                           ? null
-                          : () {
+                          : () async {
                             if (_formKey.currentState!.validate()) {
                               String email = _emailController.text.trim();
 
@@ -169,7 +168,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 password: "" // There is no password form in Login Screen, hence fill with empty string 
                               );
 
-                              authProvider.loginUser(context, loginParams);
+                              bool success = await authProvider.loginUser(context, loginParams);
+                              debugPrint("Success Save Session: $success");
+                              if (success) {
+                                debugPrint("Login successful!");
+                              }
                             }
                           },
                         style: ElevatedButton.styleFrom(
