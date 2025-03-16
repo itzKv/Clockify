@@ -413,9 +413,10 @@ class _TimerScreenState extends State<TimerScreen> {
                             _isTimerStopped = !_isTimerStopped;
                             
                             final activity = ActivityEntity(
-                              id: _uuid.v4(),
+                              uuid: _uuid.v4(),
                               startTime: _startTime!,
                               endTime: _endTime!,
+                              duration: _endTime!.difference(_startTime!).inSeconds,
                               description: _descriptionController.text,
                               locationLat: _locationLat,
                               locationLng: _locationLng,
