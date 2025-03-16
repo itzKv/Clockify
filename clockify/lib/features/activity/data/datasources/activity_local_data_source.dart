@@ -2,9 +2,10 @@ import 'package:clockify/features/activity/data/models/activity_model.dart';
 import 'package:hive/hive.dart';
 
 abstract class ActivityLocalDataSource {
-  Future<void> saveActivity(ActivityModel activity);
+  Future<void> createActivity(ActivityModel activity);
   Future<List<ActivityModel>> getAllActivities();
   Future<List<ActivityModel>> getActivityByDescription(String description);
+  Future<void> saveAllActivities(List<ActivityModel> activities);
   Future<void> deleteActivity(String id);
 }
 
@@ -29,9 +30,16 @@ class ActivityLocalDataSourceImpl implements ActivityLocalDataSource {
   Future<List<ActivityModel>> getAllActivities() async {
     return activityBox.values.toList();
   }
+
+  @override
+  Future<void> saveAllActivities(List<ActivityModel> activities) async {
+    for (var activity in activities) {
+      await activityBox.put(activity.uuid, activity);
+    }
+  }
   
   @override
-  Future<void> saveActivity(ActivityModel activity) async {
-     await activityBox.put(activity.id, activity);
+  Future<void> createActivity(ActivityModel activity) async {
+     await activityBox.put(activity.uuid, activity);
   }
 }

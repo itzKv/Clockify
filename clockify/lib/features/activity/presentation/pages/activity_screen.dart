@@ -23,6 +23,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
   late String _dropdownValue = 'Latest Date';
   final FocusNode _focusNode = FocusNode();
 
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      context.read<ActivityProvider>().fetchActivities();
+    });
+  }
+
   String formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     
@@ -132,7 +140,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   Widget _activityInfo(ActivityEntity activity, ActivityProvider activityProvider) {
     return Slidable(
-      key: ValueKey(activity.id),
+      key: ValueKey(activity.uuid),
       endActionPane: ActionPane(
         motion: const DrawerMotion(), 
         extentRatio: 0.3,
@@ -177,30 +185,34 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
               if (confirmDelete == true) {
                 try {
-                  activityProvider.deleteActivity(activity.id);
+                  activityProvider.deleteActivity(activity.uuid);
+
                   // Sucess then show dialog
                   if (context.mounted) {
                     showDialog(
                       context: context,
-                      barrierDismissible: false, // Prevent any dismmising by tapping outside
                       builder: (context) {
                         Future.delayed(Duration(seconds: 3), () async {
-                          if (context.mounted) {
-                              Navigator.pop(context); // Close the Activity Detail Screen
-                            }
-                          });
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context); // Close the dialog
+                          }
 
-                          return SuccessDialog(
-                            title: "Activity Deleted", 
-                            message: "Activity of ${activity.description} has beed deleted."
-                          );
-                        },
-                      );
-                    }
-                  } catch (e) {
-                    debugPrint("Error deleting activity: $e");
+                          if (context.mounted) {
+                            Navigator.pop(context); // Close the Activity Detail Screen
+                          }
+                        });
+
+                        return SuccessDialog(
+                          title: "Activity Deleted", 
+                          message: "Activity of ${activity.description} has beed deleted."
+                        );
+                      },
+                    );
                   }
+                } catch (e) {
+                  debugPrint("Error deleting activity: $e");
                 }
+              }
             },
             backgroundColor: Colors.red,
             foregroundColor: Colors.white, 
@@ -335,9 +347,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Expanded(
       child: Consumer<ActivityProvider>(
         builder: (context, activityProvider, child) {
-          if (!activityProvider.isSearching) {
-             activityProvider.fetchActivities(); // Fetch at once
-          }
+          // if (!activityProvider.isSearching) {
+          //    activityProvider.fetchActivities(); // Fetch at once
+          // }
           
           final activities = activityProvider.activities;
 
