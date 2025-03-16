@@ -40,45 +40,6 @@ class UserParams {
     };
   }
 }
-
-class MockApiService {
-  final List<UserParams> _users = [
-    UserParams(
-      id: '1',
-      email: 'user@example.com',
-      password: 'password!123',
-      verified: 1,
-      createdAt: DateTime(2024, 1, 1),
-      updatedAt: DateTime(2024, 2, 1),
-    ),
-    UserParams(
-      id: '2',
-      email: 'test@demo.com',
-      password: 'securePass!1123',
-      verified: 0,
-      createdAt: DateTime(2024, 1, 15),
-      updatedAt: DateTime(2024, 2, 5),
-    ),
-  ];
-
-  Future<List<UserParams>> getUsers() async {
-    await Future.delayed(const Duration(milliseconds: 500)); // Simulate network delay
-    return _users;
-  }
-
-  Future<UserParams?> getUserByEmail(String email) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _users.firstWhere((user) => user.email == email, orElse: () => UserParams(
-      id: '',
-      email: '',
-      password: '',
-      verified: 0,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ));
-  }
-}
-
 class LoginParams {
   final String email;
   final String password;
@@ -92,4 +53,51 @@ class RegisterParams {
     required this.email,
     required this.password,
   });
+}
+
+class CreateActivityParams {
+  final String description;
+  final String startTime;
+  final String endTime;
+  final double locationLat;
+  final double locationLng;
+
+  const CreateActivityParams({
+    required this.description,
+    required this.startTime,
+    required this.endTime,
+    required this.locationLat,
+    required this.locationLng,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'start_time': startTime,
+      'end_time': endTime,
+      'location_lat': locationLat,
+      'location_lng': locationLng,
+    };
+  }
+}
+class UpdateActivityParams{
+  final String activityUuid;
+  final String description;
+  final String startTime;
+  final double locationLat;
+
+  const UpdateActivityParams({
+    required this.activityUuid,
+    required this.description,
+    required this.startTime,
+    required this.locationLat,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'start_time': startTime,
+      'location_lat': locationLat,
+    };
+  }
 }

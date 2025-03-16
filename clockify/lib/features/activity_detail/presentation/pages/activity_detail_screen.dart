@@ -1,13 +1,10 @@
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
-import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
-import 'package:clockify/features/activity/business/usecases/save_activity.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 
 class ActivityDetailScreen extends StatefulWidget {
   final ActivityEntity activity;
@@ -296,9 +293,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                       setState(() {
                         
                         final activity = ActivityEntity(
-                          id: widget.activity.id,
+                          uuid: widget.activity.uuid,
                           startTime: widget.activity.startTime,
                           endTime: widget.activity.endTime,
+                          duration: widget.activity.endTime.difference(widget.activity.startTime).inSeconds,
                           description: _descriptionController.text,
                           locationLat: widget.activity.locationLat,
                           locationLng: widget.activity.locationLng,
@@ -308,7 +306,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
                         // Save
                         try {
-                          activityProvider.addActivity(activity); // Update
+                          activityProvider.updateActivity(activity); // Update
 
                           // Sucess then show dialog
                           if (context.mounted) {
@@ -399,7 +397,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
                     if (confirmDelete == true) {
                       try {
-                        activityProvider.deleteActivity(widget.activity.id);
+                        activityProvider.deleteActivity(widget.activity.uuid);
 
                         // Sucess then show dialog
                         if (context.mounted) {

@@ -25,6 +25,7 @@ class SessionProvider extends ChangeNotifier {
   Future<void> loadUserSession() async {
     _session = await getSession.call();
     _isAuthenticated = _session != null && _isSessionValid(_session!);
+    debugPrint("Loaded session: $_session"); 
     notifyListeners();
   }
 
@@ -32,6 +33,7 @@ class SessionProvider extends ChangeNotifier {
     await saveSession.call(session);
     _session = session;
     _isAuthenticated = true;
+    debugPrint("Saved session: $_session"); // Debug output
     notifyListeners();
   }
 
@@ -49,7 +51,7 @@ class SessionProvider extends ChangeNotifier {
       _isAuthenticated = true;
     } else {
       _isAuthenticated = false;
-      await clearUserSession();
+      _session = null;
     }
     notifyListeners();
   }

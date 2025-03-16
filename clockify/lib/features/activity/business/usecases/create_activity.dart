@@ -3,12 +3,12 @@ import 'package:clockify/features/activity/business/entities/activity_entity.dar
 import 'package:clockify/features/activity/business/repositories/activity_repository.dart';
 import 'package:dartz/dartz.dart';
 
-class GetAllActivities {
+class CreateActivity {
   final ActivityRepository repository;
 
-  GetAllActivities(this.repository);
+  CreateActivity(this.repository);
 
-  Future<Either<Failure, List<ActivityEntity>>> call() async {
-    return await repository.getAllActivities();
+  Future<Either<Failure, void>> call(ActivityEntity activityEntity) async {
+    return await repository.createActivity(activityEntity);
   }
 }
