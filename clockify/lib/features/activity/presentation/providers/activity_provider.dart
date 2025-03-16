@@ -1,29 +1,35 @@
 import 'dart:math';
 import 'dart:async';
-import 'dart:isolate';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
 import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
-import 'package:clockify/features/activity/business/usecases/save_activity.dart';
+import 'package:clockify/features/activity/business/usecases/create_activity.dart';
+import 'package:clockify/features/activity/business/usecases/update_activity.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 class ActivityProvider extends ChangeNotifier {
   final GetAllActivities _getAllActivities;
-  final SaveActivity _saveActivity;
+  final CreateActivity _createActivity;
+  final UpdateActivity _updateActivity;
   final DeleteActivity _deleteActivity;
   final GetActivityByDescription _getActivityByDescription; // Searching
 
   ActivityProvider({
     required GetAllActivities getAllActivities,
-    required SaveActivity saveActivity,
+    required CreateActivity createActivity,
+    required UpdateActivity updateActivity,
     required DeleteActivity deleteActivity,
     required GetActivityByDescription getActivityByDescription,
   })  : _getAllActivities = getAllActivities,
-        _saveActivity = saveActivity,
+        _createActivity = createActivity,
+        _updateActivity = updateActivity,
         _deleteActivity = deleteActivity,
         _getActivityByDescription = getActivityByDescription;
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
 
   List<ActivityEntity> _activities = []; // Original Data
   List<ActivityEntity> _filteredActivities = []; // Filtered Data
@@ -35,23 +41,83 @@ class ActivityProvider extends ChangeNotifier {
   bool get isSearching => _isFiltering;
 
   Future<void> fetchActivities() async {
-     try {
-      final result = await _getAllActivities();
-      _activities = result;
-      notifyListeners();
-    } catch (e) {
-      debugPrint("Error fetching activities: $e");
-    }
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _getAllActivities();
+    result.fold(
+      (failure) {
+        debugPrint("Failure fetching Activities: ${failure.errorMessage}");
+        throw Exception("Failed to fetching activity: ${failure.errorMessage}");
+      },
+      (result) {
+        debugPrint("Success Fethcing Activities: $result");
+        _activities = result;
+      } 
+    );
+
+    _isLoading = false;
+    notifyListeners();
   }
 
-  void addActivity(ActivityEntity activity) {
-    _saveActivity(activity);
+  Future<void> addActivity(ActivityEntity activity) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _createActivity(activity);
+    result.fold(
+      (failure) {
+        debugPrint("Failure Creating Activities: ${failure.errorMessage}");
+        throw Exception("Failed to creating activity: ${failure.errorMessage}");
+      },
+      (_) {
+        debugPrint("Success Creating Activities");
+        fetchActivities(); // Fetch again to refresh the Storage and UI.
+      }
+    );
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> updateActivity(ActivityEntity activity) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _updateActivity(activity);
+    result.fold(
+      (failure) {
+        debugPrint("Failure updating Activities: ${failure.errorMessage}");
+        throw Exception("Failed to updating activity: ${failure.errorMessage}");
+      },
+      (_) async {
+        debugPrint("Success updating Activities");
+        await fetchActivities(); // Fetch again to refresh the Storage and UI.
+      }
+    );
+
+    _isLoading = false;
     notifyListeners();
   }
 
   Future<void> deleteActivity(String id) async {
-    await _deleteActivity(id);
-    fetchActivities();
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _deleteActivity(id);
+    result.fold(
+      (failure) {
+        debugPrint("Failure Deleting Activities: ${failure.errorMessage}");
+        throw Exception("Failed to delete activity: ${failure.errorMessage}");
+      },
+      (_) async {
+        debugPrint("Success Deleting Activities");
+        await fetchActivities(); // Fetch again to refresh the Storage and UI.
+      }
+    );
+    
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> getActivityByDescription(String description) async {
@@ -102,7 +168,9 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> filterByNearby() async {
     try {
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: LocationSettings(
+          accuracy: LocationAccuracy.high
+        ),
       );
 
       _isFiltering = true;
