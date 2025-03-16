@@ -4,8 +4,10 @@ import 'package:clockify/features/activity/business/entities/activity_entity.dar
 import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
 import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
-import 'package:clockify/features/activity/business/usecases/save_activity.dart';
+import 'package:clockify/features/activity/business/usecases/create_activity.dart';
+import 'package:clockify/features/activity/business/usecases/update_activity.dart';
 import 'package:clockify/features/activity/data/datasources/activity_local_data_source.dart';
+import 'package:clockify/features/activity/data/datasources/activity_remote_data_source.dart';
 import 'package:clockify/features/activity/data/models/activity_model.dart';
 import 'package:clockify/features/activity/data/repositories/activity_repository_impl.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
@@ -28,20 +30,29 @@ import 'package:clockify/features/session/data/models/session_model.dart';
 import 'package:clockify/features/session/data/repositories/session_repository_impl.dart';
 import 'package:clockify/features/session/presentation/providers/session_provider.dart';
 import 'package:clockify/features/splash/presentation/pages/splash_screen.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+
+Future<bool> checkInternetConnection() async {
+  var connectivityResult = await Connectivity().checkConnectivity();
+  return connectivityResult != ConnectivityResult.none;
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Init Hive
   await Hive.initFlutter();
-  Hive.registerAdapter(ActivityModelAdapter());
   Hive.registerAdapter(SessionModelAdapter());
+  Hive.registerAdapter(ActivityModelAdapter());
 
   // Open the boxes
-  final activityBox = await Hive.openBox<ActivityModel>('activityBox');
+  // TEMP
+  // await Hive.deleteBoxFromDisk('activityBox');
   final sessionBox = await Hive.openBox<SessionModel>('sessionBox');
+  final activityBox = await Hive.openBox<ActivityModel>('activityBox');
+  // Clear old local data
 
   // Data sources
   final localActivityDataSource = ActivityLocalDataSourceImpl(activityBox);
@@ -51,20 +62,20 @@ void main() async {
   final dioClient = DioClient();
 
   final remoteAuthDataSource = AuthRemoteDataSourceImpl(dioClient);
+  final remoteActivityDataSource = ActivityRemoteDataSourceImpl(dioClient);
 
-  // Repositories
-  final activityRepository = ActivityRepositoryImpl(localDataSource: localActivityDataSource);
-  final sessionRepository = SessionRepositoryImpl(localDataSource: localSessionDataSource);
+  // Check connection
+  final bool isOnline = await checkInternetConnection();
+
+  // Repository & Use cases
+    // AUTH
   final authRepository = AuthRepositoryImpl(remoteDataSource: remoteAuthDataSource);
-
-  // Use cases
-    // --- ACTIVITY
-  final saveActivity = SaveActivity(activityRepository); 
-  final getAllActivities = GetAllActivities(activityRepository);
-  final deleteActivity = DeleteActivity(activityRepository);
-  final getActivityByDescription = GetActivityByDescription(activityRepository);
+  final loginUsecase = Login(authRepository);
+  final registerUsecase = Register(authRepository);
+  final verifyEmailUsecase = VerifyEmail(authRepository);
 
     // --- SESSION
+  final sessionRepository = SessionRepositoryImpl(localDataSource: localSessionDataSource);
   final saveSession = SaveSession(sessionRepository);
   final getSession = GetSession(sessionRepository);
   final clearSession = ClearSession(sessionRepository);
@@ -73,11 +84,15 @@ void main() async {
     getSession: getSession, 
     clearSession: clearSession
   );
+  debugPrint("Is Connected to Internet: $isOnline");
+    // --- ACTIVITY
+  final activityRepository = ActivityRepositoryImpl(localDataSource: localActivityDataSource, remoteDataSource: remoteActivityDataSource, sessionProvider: sessionProvider, isOnline: isOnline);
+  final createActivity = CreateActivity(activityRepository);
+  final updateActivity = UpdateActivity(activityRepository); 
+  final getAllActivities = GetAllActivities(activityRepository);
+  final deleteActivity = DeleteActivity(activityRepository);
+  final getActivityByDescription = GetActivityByDescription(activityRepository);
 
-    // AUTH
-  final loginUsecase = Login(authRepository);
-  final registerUsecase = Register(authRepository);
-  final verifyEmailUsecase = VerifyEmail(authRepository);
 
   runApp(
     MultiProvider(
@@ -85,7 +100,8 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => ActivityProvider(
             getAllActivities: getAllActivities, 
-            saveActivity: saveActivity, 
+            createActivity: createActivity, 
+            updateActivity: updateActivity,
             deleteActivity: deleteActivity,
             getActivityByDescription: getActivityByDescription,
           ),
