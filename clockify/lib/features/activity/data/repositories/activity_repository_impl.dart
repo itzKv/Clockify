@@ -4,6 +4,7 @@ import 'package:clockify/features/activity/business/repositories/activity_reposi
 import 'package:clockify/features/activity/data/datasources/activity_local_data_source.dart';
 import 'package:clockify/features/activity/data/datasources/activity_remote_data_source.dart';
 import 'package:clockify/features/activity/data/models/activity_model.dart';
+import 'package:clockify/features/activity/data/models/responses/search_activity_description.dart';
 import 'package:clockify/features/session/presentation/providers/session_provider.dart';
 import 'package:dartz/dartz.dart';
 
@@ -37,14 +38,12 @@ class ActivityRepositoryImpl implements ActivityRepository {
     print("Token from session provider: $token");
     if (token == null) throw Exception("Unauthorized: Token is missing");
 
-    // 1. Fetch local first for performance
-    List<ActivityModel> localActivities = await localDataSource.getAllActivities();
-    if (localActivities.isNotEmpty) {
-      await fetchAndUpdateRemote(token);
-      return Right(localActivities.map((e) => e.toEntity()).toList());
-    }
-
-    return fetchAndUpdateRemote(token);
+    // Fetch remotely
+    final remoteResult = await remoteDataSource.getAllActivities(token: token);
+    // Update local storage
+    await localDataSource.saveAllActivities(remoteResult.data!);
+    
+    return Right(remoteResult.data!.map((activity) => activity.toEntity()).toList());
   }
 
   @override
@@ -57,8 +56,9 @@ class ActivityRepositoryImpl implements ActivityRepository {
     try {
       if (isOnline) {
         await remoteDataSource.createActivity(createActivityParams: activity.toCreateParams(), token: token);
+      } else {
+        // await localDataSource.createActivity(model);
       }
-      await localDataSource.createActivity(model);
       return Right(null); // Meaning success;
     } catch (e) {
       return Left(ServerFailure(e, errorMessage:  "Failed to create activity: $e"));
@@ -74,8 +74,9 @@ class ActivityRepositoryImpl implements ActivityRepository {
     try {
       if (isOnline) {
         await remoteDataSource.deleteActivity(activityUuid: id, token: token);
+      } else {
+        await localDataSource.deleteActivity(id);
       }
-      await localDataSource.deleteActivity(id);
       return Right(null);
     } catch (e) {
       return Left(ServerFailure(e, errorMessage: "Failed to delete activity: $e"));
@@ -83,9 +84,25 @@ class ActivityRepositoryImpl implements ActivityRepository {
   } 
   
   @override
-  Future<List<ActivityEntity>> getActivityByDescription(String description) {
-    // TODO: implement getActivityByDescription
-    throw UnimplementedError();
+  Future<Either<Failure, List<ActivityEntity>>> getActivityByDescription(String description) async {
+    // Get token from session;
+    final token = sessionProvider.session?.token; 
+    if (token == null) throw Exception("Unauthorized: Token is missing");
+
+    try {
+      if (isOnline) {
+        final SearchActivityResponse response = await remoteDataSource.searchActivity(description: description, token: token);
+        return Right(response.data!.map((activity) => activity.toEntity()).toList());
+      } else {
+        final List<ActivityModel> activities = await localDataSource.getActivityByDescription(description);
+        return Right(activities.map((activity) => activity.toEntity()).toList());
+      }
+    } catch (e) {
+      if (e is ServerFailure) {
+        return Left(ServerFailure(e.errorData, errorMessage: e.errorMessage));
+      }
+      return Left(ServerFailure(e, errorMessage: "Unexpected Error."));
+    }
   }
   
   @override
@@ -124,11 +141,30 @@ class ActivityRepositoryImpl implements ActivityRepository {
       // Save new data to local storage
       await localDataSource.saveAllActivities(remoteActivities);
 
+
       return Right(remoteActivities.map((e) => e.toEntity()).toList());
     } catch (e, stacktrace) {
       print("Error in getAllActivities: $e");
       print("Stacktrace: $stacktrace");
       return Left(ServerFailure(e, errorMessage: "Unexpected error"));
+    }
+  }
+  
+  @override
+  Future<Either<Failure, List<ActivityEntity>>> sortActivites(String params, List<double>? location) async {
+    // Get token from session;
+    final token = sessionProvider.session?.token; 
+    if (token == null) throw Exception("Unauthorized: Token is missing");
+
+    try {
+      if (isOnline) {
+        final response = await remoteDataSource.sortActivities(params: params, location: location, token: token);
+        return Right(response.data!.map((activity) => activity.toEntity()).toList());
+      } else {
+        return Left(ServerFailure(null, errorMessage: "No internet connection"));
+      }
+    } catch (e) {
+      return Left(ServerFailure(e, errorMessage: "Failed to sort activity: $e"));
     }
   }
 }
