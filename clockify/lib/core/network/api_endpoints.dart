@@ -8,5 +8,5 @@ class ApiEndpoints {
   static const String deleteActivity = "$baseUrl/activity";
   static const String updateActivity = "$baseUrl/activity";
   static const String searchActivity = "$baseUrl/activity/search?description=";
-  static const String   sortActivities = "$baseUrl/activity/filter?sortBy";
+  static const String sortActivities = "$baseUrl/activity/filter?sortBy";
 }
