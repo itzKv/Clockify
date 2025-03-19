@@ -34,7 +34,9 @@ class ActivityLocalDataSourceImpl implements ActivityLocalDataSource {
   @override
   Future<void> saveAllActivities(List<ActivityModel> activities) async {
     for (var activity in activities) {
-      await activityBox.put(activity.uuid, activity);
+      if (!activityBox.containsKey(activity.uuid)) {
+        await activityBox.put(activity.uuid, activity);
+      }
     }
   }
   
