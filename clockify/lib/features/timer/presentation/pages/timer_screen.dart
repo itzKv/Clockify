@@ -93,6 +93,10 @@ class _TimerScreenState extends State<TimerScreen> {
         _locationLng = position.longitude;
         _locationAddress = '$_locationLat , $_locationLng';
       });
+
+      // Save to provider
+      final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+      activityProvider.setLocation(position.latitude, position.longitude);
     } catch (e) {
        setState(() {
         _locationAddress = 'Error: $e'; 
