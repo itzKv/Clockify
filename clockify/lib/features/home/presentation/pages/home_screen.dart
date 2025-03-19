@@ -39,7 +39,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           TextButton(
             onPressed: () => exit(0), // Close the app
-            child: Text("Exit"),
+            child: Text(
+              "Exit",
+              style: TextStyle(
+                color: Colors.red
+              ),
+            ),
           ),
         ],
       ),
