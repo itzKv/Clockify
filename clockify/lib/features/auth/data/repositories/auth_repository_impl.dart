@@ -51,6 +51,4 @@ class AuthRepositoryImpl extends AuthRepository {
       return Left(ServerFailure(null, errorMessage: "Unexpected Error"));
     }
   }
-
-  
 }

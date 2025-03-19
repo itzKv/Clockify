@@ -1,20 +1,26 @@
 import 'dart:math';
 import 'dart:async';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:clockify/core/errors/failure.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
 import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/business/usecases/create_activity.dart';
+import 'package:clockify/features/activity/business/usecases/sort_activities.dart';
 import 'package:clockify/features/activity/business/usecases/update_activity.dart';
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:flutter/material.dart';
 
 class ActivityProvider extends ChangeNotifier {
   final GetAllActivities _getAllActivities;
   final CreateActivity _createActivity;
   final UpdateActivity _updateActivity;
   final DeleteActivity _deleteActivity;
-  final GetActivityByDescription _getActivityByDescription; // Searching
+  final GetActivityByDescription _searchActivity; // Searching
+  final SortActivities _sortActivities;
+  final Duration _debounceDuration = Duration(milliseconds: 300);
+  
 
   ActivityProvider({
     required GetAllActivities getAllActivities,
@@ -22,23 +28,36 @@ class ActivityProvider extends ChangeNotifier {
     required UpdateActivity updateActivity,
     required DeleteActivity deleteActivity,
     required GetActivityByDescription getActivityByDescription,
+    required SortActivities sortActivities,
   })  : _getAllActivities = getAllActivities,
         _createActivity = createActivity,
         _updateActivity = updateActivity,
         _deleteActivity = deleteActivity,
-        _getActivityByDescription = getActivityByDescription;
+        _searchActivity = getActivityByDescription,
+        _sortActivities = sortActivities;
 
   bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  bool _isFiltering = false;
+  double? _latitude;
+  double? _longitude;
+  Timer? _debounce;
 
   List<ActivityEntity> _activities = []; // Original Data
   List<ActivityEntity> _filteredActivities = []; // Filtered Data
-  bool _isFiltering = false;
-  String _searchQuery = "";
-  String _seletedFilter = "Latest Date";
 
   List<ActivityEntity> get activities => _isFiltering ? _filteredActivities : _activities;
+  bool get isLoading => _isLoading;
   bool get isSearching => _isFiltering;
+  double? get latitude => _latitude;
+  double? get longitude => _longitude;
+
+  void setLocation(double lat, double lng) {
+    _latitude = lat;
+    _longitude = lng;
+    notifyListeners();
+  }
+
+  // ============================================================ USE CASES ======================================================================
 
   Future<void> fetchActivities() async {
     _isLoading = true;
@@ -48,6 +67,8 @@ class ActivityProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         debugPrint("Failure fetching Activities: ${failure.errorMessage}");
+        _isLoading = false;
+        notifyListeners();
         throw Exception("Failed to fetching activity: ${failure.errorMessage}");
       },
       (result) {
@@ -57,7 +78,7 @@ class ActivityProvider extends ChangeNotifier {
     );
 
     _isLoading = false;
-    notifyListeners();
+    await sortingActivities("Latest Date", null);
   }
 
   Future<void> addActivity(ActivityEntity activity) async {
@@ -70,9 +91,9 @@ class ActivityProvider extends ChangeNotifier {
         debugPrint("Failure Creating Activities: ${failure.errorMessage}");
         throw Exception("Failed to creating activity: ${failure.errorMessage}");
       },
-      (_) {
+      (_) async {
         debugPrint("Success Creating Activities");
-        fetchActivities(); // Fetch again to refresh the Storage and UI.
+        await fetchActivities(); // Fetch again to refresh the Storage and UI.
       }
     );
 
@@ -120,108 +141,102 @@ class ActivityProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> getActivityByDescription(String description) async {
-    if (description.isEmpty) {
-      _isFiltering = false;
-      _filteredActivities = [];
-    } else {
-      _isFiltering = true;
-      final result = await _getActivityByDescription(description);
-      _filteredActivities = result;
-    }
+  Future<void> searchActivity(BuildContext context, String description) async {
+    _isLoading = true;
     notifyListeners();
-  }
+    // Reset debouncer everytime input changes
+    _debounce?.cancel();
+    _debounce = Timer(_debounceDuration, () async {
+      if (description.isEmpty) {
+        _isFiltering = false;
+        _filteredActivities = [];
+      } else {
+        _isFiltering = true;
+        final result = await _searchActivity.call(description);
 
-  void searchActivity(String query) {
-    _searchQuery = query.toLowerCase();
-    _applyFilters();
-  }
+        (result).fold(
+          (failure) {
+            debugPrint("Failure search activity: ${failure}");
+            if (failure is ServerFailure && failure.errorData != null) {
+              debugPrint("Error JSON: ${failure.errorData}");
+              debugPrint("Error ms: ${failure.errorMessage}");
 
-  void setFilter(String filter) {
-    _seletedFilter = filter;
-    _applyFilters();
-  }
+              if (failure.errorMessage.contains("No post found!")) {
+                debugPrint("Showing Snackbar of Fail");
 
-  void _applyFilters() {
-    // 1. Apply Searching Filter 
-    _filteredActivities = _activities.where((activity) {
-      return activity.description.toLowerCase().contains(_searchQuery);
-    }).toList();
+                _filteredActivities = [];
+                notifyListeners();
 
-    // 2. Sort based on the selected filter
-    if (_seletedFilter == "Latest Date") {
-      filterByLatestDate();
-    } else if (_seletedFilter == "Nearby") {
-      filterByNearby();
-    }
+                final snackBar = SnackBar(
+                  elevation: 0,
+                  duration: Duration(seconds: 3, microseconds: 300),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Colors.transparent,
+                  content: AwesomeSnackbarContent(
+                    title: "Oops! No activity found", 
+                    titleTextStyle: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700
+                    ),
+                    message: "Try adjusting your search or adding a new activity!", 
+                    messageTextStyle: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w400
+                    ),
+                    contentType: ContentType.failure
+                  ),
+                );
 
-    _isFiltering = _searchQuery.isNotEmpty || _seletedFilter != "Latest Date";
-    notifyListeners();
-  }
-
-  void filterByLatestDate() {
-    _isFiltering = true;
-    _filteredActivities.sort((a, b) => b.endTime.compareTo(a.endTime));
-    notifyListeners();
-  }
-  
-  Future<void> filterByNearby() async {
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(
-          accuracy: LocationAccuracy.high
-        ),
-      );
-
-      _isFiltering = true;
-
-      // Run on a different isolate. Meaning that it will not consume another time.
-      _filteredActivities = await compute(_sortActivitiesByDistance, {
-        "activities": _activities,
-        "lat": position.latitude,
-        "lng": position.longitude,
-      });
-
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(snackBar);
+              }
+            }
+            return;
+          },
+          (searchedActivities) {
+            _filteredActivities = searchedActivities;
+          })
+        ;
+      }
+      
+      _isLoading = false;
       notifyListeners();
-    } catch (e) {
-      debugPrint("Error getting location: $e");
-    }
-  }
-
-  // Helper function for isolating processing
-  List<ActivityEntity> _sortActivitiesByDistance(Map<String, dynamic> data) {
-    List<ActivityEntity> activities = List.from(data['activities']);
-    double lat = data["lat"];
-    double lng = data["lng"];
-
-    return activities..sort((a,b) {
-      double distanceA = _calculateDistance(lat, lng, a.locationLat!, a.locationLng!);
-      double distanceB = _calculateDistance(lat, lng, b.locationLat!, b.locationLng!);
-      return distanceA.compareTo(distanceB);
     });
   }
 
-  void resetFilters() {
-    _isFiltering = false;
-    _filteredActivities = [];
+  Future<void> sortingActivities(String params, List<double>? location) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _sortActivities(params, location);
+    result.fold(
+      (failure) {
+        _isFiltering = false;
+        _isLoading = false;
+        notifyListeners();
+        debugPrint("Failure sort Activities by latest date: ${failure.errorMessage}");
+        throw Exception("Failed to sort activities by latest date: ${failure.errorMessage}");
+      },
+      (sortedList) {
+        _isFiltering = true;
+        _filteredActivities = sortedList;
+        _isLoading = false;
+        notifyListeners();
+        debugPrint("Success Sort Activities by $params: $result");
+      } 
+    );
+
+    _isLoading = false;
     notifyListeners();
   }
 
-  double _calculateDistance(double lat1, double lng1, double lat2, double lng2) {
-    const double R = 6371; // Earth radius in km
-    double dLat = _degToRad(lat2 - lat1);
-    double dLon = _degToRad(lng2 - lng1);
-
-    double a = 
-        (sin(dLat / 2) * sin(dLat / 2)) +
-        cos(_degToRad(lat1)) * cos(_degToRad(lat2)) *
-        (sin(dLon / 2) * sin(dLon / 2));
-
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c;
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 
-  double _degToRad(double deg) {
-    return deg * (pi / 180);
-  }
 }

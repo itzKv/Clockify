@@ -68,7 +68,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<VerifyEmailResponse> verifyEmail({required String emailToken}) async {
     try {
-      final response = await dioClient.dio.patch(
+      final response = await dioClient.dio.get(
         ApiEndpoints.verifyEmail,
         data: {"emailToken": emailToken},
         options: Options(

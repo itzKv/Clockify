@@ -5,6 +5,7 @@ import 'package:clockify/features/activity/business/usecases/delete_activity.dar
 import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/business/usecases/create_activity.dart';
+import 'package:clockify/features/activity/business/usecases/sort_activities.dart';
 import 'package:clockify/features/activity/business/usecases/update_activity.dart';
 import 'package:clockify/features/activity/data/datasources/activity_local_data_source.dart';
 import 'package:clockify/features/activity/data/datasources/activity_remote_data_source.dart';
@@ -50,6 +51,7 @@ void main() async {
   // Open the boxes
   // TEMP
   // await Hive.deleteBoxFromDisk('activityBox');
+  // await Hive.deleteBoxFromDisk('sessionBox');
   final sessionBox = await Hive.openBox<SessionModel>('sessionBox');
   final activityBox = await Hive.openBox<ActivityModel>('activityBox');
   // Clear old local data
@@ -92,6 +94,7 @@ void main() async {
   final getAllActivities = GetAllActivities(activityRepository);
   final deleteActivity = DeleteActivity(activityRepository);
   final getActivityByDescription = GetActivityByDescription(activityRepository);
+  final sortActivities = SortActivities(activityRepository);
 
 
   runApp(
@@ -104,6 +107,7 @@ void main() async {
             updateActivity: updateActivity,
             deleteActivity: deleteActivity,
             getActivityByDescription: getActivityByDescription,
+            sortActivities: sortActivities
           ),
         ),
         ChangeNotifierProvider(

@@ -6,7 +6,8 @@ abstract class ActivityRepository {
   Future<Either<Failure, void>> createActivity(ActivityEntity activity);
   Future<void> saveAllActivities(List<ActivityEntity> activities);
   Future<Either<Failure, List<ActivityEntity>>> getAllActivities();
-  Future<List<ActivityEntity>> getActivityByDescription(String description);
+  Future<Either<Failure, List<ActivityEntity>>>getActivityByDescription(String description);
   Future<Either<Failure, void>> deleteActivity(String uuid);
   Future<Either<Failure, void>> updateActivity(ActivityEntity activity);
+  Future<Either<Failure, List<ActivityEntity>>> sortActivites(String params, List<double>? location);
 }
