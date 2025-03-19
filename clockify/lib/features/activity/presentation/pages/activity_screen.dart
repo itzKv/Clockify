@@ -1,10 +1,7 @@
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
-import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
-import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +15,7 @@ class ActivityScreen extends StatefulWidget {
 
 
 class _ActivityScreenState extends State<ActivityScreen> {
+  final TextEditingController _searchController = TextEditingController();
   final DateFormat timeFormatter = DateFormat('HH:mm:ss'); 
   final DateFormat dateFormatter = DateFormat('d MMM yy'); 
   late String _dropdownValue = 'Latest Date';
@@ -64,8 +62,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: TextFormField(
+            controller: _searchController,
             onChanged: (value) {
-              activityProvider.searchActivity(value);
+              activityProvider.searchActivity(context, value);
             },
             decoration: InputDecoration(
               hintText: "Search activity",
@@ -75,7 +74,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 fontSize: 14,
               ),
               suffixIcon: GestureDetector(
-                onTap: _toggleKeyboard,
+                onTap: () {
+                  _toggleKeyboard();
+                },
                 child: Icon(
                   Icons.search,
                   color: Color(0xff25367B),
@@ -125,11 +126,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: (String? selectedValue) {
+              onChanged: (String? selectedValue) async {
+                if (selectedValue == null) return;
+
                 setState(() {
-                  _dropdownValue = selectedValue!;
-                  activityProvider.setFilter(_dropdownValue);
+                  _dropdownValue = selectedValue;
                 });
+
+                await activityProvider.sortingActivities(_dropdownValue, [activityProvider.latitude!, activityProvider.longitude!]);
               },
             ),
           ),
@@ -185,8 +189,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
               if (confirmDelete == true) {
                 try {
-                  activityProvider.deleteActivity(activity.uuid);
-
                   // Sucess then show dialog
                   if (context.mounted) {
                     showDialog(
@@ -209,6 +211,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       },
                     );
                   }
+                  activityProvider.deleteActivity(activity.uuid);
                 } catch (e) {
                   debugPrint("Error deleting activity: $e");
                 }
@@ -226,21 +229,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
           Navigator.of(context).pushNamed(
             '/activityDetail',
             arguments: activity,
-          );
+          ).then((_) {
+            _searchController.clear();
+            _toggleKeyboard();
+          });
         },
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
+          padding: EdgeInsets.symmetric(),
           child: Column(
             children: [
               Container(
-                height: 64,
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                height: 70,
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Text(
                             formatDuration((activity.endTime.difference(activity.startTime))),
@@ -260,7 +267,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                               Text(
                                 timeFormatter.format(activity.startTime),
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Color(0xffA7A6C5),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w400,
                                 ),
@@ -268,7 +275,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                               Text(
                                 ' - ',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Color(0xffA7A6C5),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w400,
                                 ),
@@ -276,7 +283,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                               Text(
                                 timeFormatter.format(activity.endTime),
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Color(0xffA7A6C5),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w400,
                                 ),
@@ -290,9 +297,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Text(
                             maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             activity.description,
                             style: TextStyle(
                               color: Colors.white,
@@ -312,7 +321,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                               Text(
                                 '${activity.locationLat!.toStringAsFixed(4)},${activity.locationLng!.toStringAsFixed(4)}',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Color(0xffA7A6C5),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w400,
                                 ),
@@ -326,7 +335,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 ),
               ),
               
-              SizedBox(height: 4,),
+              SizedBox(height: 6,),
 
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
@@ -347,100 +356,166 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Expanded(
       child: Consumer<ActivityProvider>(
         builder: (context, activityProvider, child) {
-          // if (!activityProvider.isSearching) {
-          //    activityProvider.fetchActivities(); // Fetch at once
-          // }
-          
           final activities = activityProvider.activities;
+
+          if (activityProvider.isLoading) {
+            return Center(
+              child: CircularProgressIndicator(color: Colors.white,),
+            );
+          }
 
           if (activities.isEmpty) {
             return Center(
               child: Text(
-                "No activities found.",
-                style: TextStyle(color: Colors.white),
+                "No activities found",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16
+                ),
               ),
             );
           }
 
-          // 1. Group activities by date
-          Map<String, List<ActivityEntity>> groupedActivities = {};
-          for (var activity in activities) {
-            String dateKey = DateFormat('yyyy-MM-dd').format(activity.endTime);
-            groupedActivities.putIfAbsent(dateKey, () => []).add(activity);
-          }
+          if (_dropdownValue == 'Latest Date') {
+            // 1. Map activities by Date
+            Map<String, List<ActivityEntity>> groupedActivities = {};
+            for (var activity in activities) {
+              String dateKey = DateFormat("yyyy-MM-dd").format(activity.endTime);
+              groupedActivities.putIfAbsent(dateKey, () => []).add(activity);
+            }
 
+            // 2. Sort Dates (Latest First)
+            List<String> sortedDates = groupedActivities.keys.toList()
+            ..sort((a, b) => b.compareTo(a));
 
-          // 2. Sort dates (latest first)
-          List<String> sortedDates = groupedActivities.keys.toList()
-            ..sort((a, b) => b.compareTo(a)); // Descending
+            return ListView.builder(
+              itemCount: sortedDates.length,
+              itemBuilder: (context, index) {
+                String dateKey = sortedDates[index];
+                List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
 
-          return ListView.builder(
-            itemCount: sortedDates.length,
-            itemBuilder: (context, index) {
-              String dateKey = sortedDates[index];
-              List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
-              
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Date Header
-                  Container(
-                    width: double.infinity,
-                    height: 24,
-                    color: Color(0xff434B8C),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                      child: Text(
-                        dateFormatter.format(DateTime.parse(dateKey)),
-                        style: TextStyle(
-                          color: Color(0xffF8D068),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date Header
+                    Container(
+                      width: double.infinity,
+                      height: 24,
+                      color: Color(0xff434B8C),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                        child: Text(
+                          dateFormatter.format(DateTime.parse(dateKey)),
+                          style: TextStyle(
+                            color: Color(0xffF8D068),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // List of activities for that date
-                  ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
-                ],
-              );
-              // return _activityInfo(activity, activityProvider);
-            },
+                    ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
+                  ],
+                );
+              },
+            );
+          } else if (_dropdownValue == 'Nearby') {
+            return ListView.builder(
+              itemCount: activities.length,
+              itemBuilder: (context, index) {
+                final activity = activities[index];
+                String activityDate = dateFormatter.format(activity.endTime);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date Header
+                    Container(
+                      width: double.infinity,
+                      height: 24,
+                      color: Color(0xff434B8C),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                        child: Text(
+                          activityDate,
+                          style: TextStyle(
+                            color: Color(0xffF8D068),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    _activityInfo(activity, activityProvider)
+                  ],
+                );
+              },
+            );
+          }
+
+           // Default return (if there are unexpected issue)
+          return Center(
+            child: Text(
+              "Unexpected Error just Occured.",
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 20,
+              ),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-      final activityProvider = Provider.of<ActivityProvider>(context);
-
       return SafeArea(
         child: Scaffold(
           body: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _searchActivity(activityProvider),
-                          SizedBox(width: 16,),
-                          _filterActivity(activityProvider),
-                        ],
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Consumer<ActivityProvider>(
+                        builder: (context, activityProvider, child) {
+                          return _searchActivity(activityProvider);
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 24),
 
-                    // ListView or other UI elements can go here
-                    _activityList(activityProvider),
-                  ],
-                ), 
+                      SizedBox(width: 16,),
 
+                      Consumer<ActivityProvider>(
+                        builder: (context, activityProvider, child) {
+                          return _filterActivity(activityProvider);
+                        },
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ListView or other UI elements can go here
+                Consumer<ActivityProvider>(
+                  builder: (context, activityProvider, child) {
+                    return _activityList(activityProvider);
+                  },
+                )
+              ],
+            ), 
           ),
       );
     }
-  }
+  
+  @override
+  void dispose() {
+    _searchController.dispose(); // Hindari memory leak
+    super.dispose();
+  }  
+}
+  
