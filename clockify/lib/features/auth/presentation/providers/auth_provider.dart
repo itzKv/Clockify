@@ -2,8 +2,10 @@ import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:clockify/core/errors/failure.dart';
 import 'package:clockify/core/params/params.dart';
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
+import 'package:clockify/features/auth/business/usecases/forgot_password.dart';
 import 'package:clockify/features/auth/business/usecases/login.dart';
 import 'package:clockify/features/auth/business/usecases/register.dart';
+import 'package:clockify/features/auth/business/usecases/reset_password.dart';
 import 'package:clockify/features/auth/business/usecases/verify_email.dart';
 import 'package:clockify/features/auth/presentation/pages/login_screen.dart';
 import 'package:clockify/features/auth/presentation/widgets/verify_email_dialog.dart';
@@ -16,9 +18,11 @@ class AuthProvider extends ChangeNotifier {
   final Login login;
   final Register register;
   final VerifyEmail verifyEmail;
+  final ForgotPassword forgotPassword;
+  final ResetPassword resetPassword;
   final SessionProvider sessionProvider;
 
-  AuthProvider({ required this.login, required this.register, required this.verifyEmail, required this.sessionProvider });
+  AuthProvider({ required this.login, required this.register, required this.verifyEmail, required this.sessionProvider, required this.forgotPassword, required this.resetPassword });
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -30,10 +34,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     final result = await login.call(loginParams);
-    print("Result : ${result}");
     result.fold(
       (failure) { 
-        print("failure: ${failure.errorMessage}");   
         if (failure is ServerFailure && failure.errorData != null) {
           // final errorJson = failure.errorMessage;
           debugPrint("Error JSON: ${failure.errorData}");
@@ -321,6 +323,83 @@ class AuthProvider extends ChangeNotifier {
       (message) {
         debugPrint("Verify Email Success: $message");
       },
+    );
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> forgotPasswordUser(BuildContext context, String email) async {
+    _isLoading = false;
+    notifyListeners();
+
+    final result = await forgotPassword.call(email);
+    result.fold(
+      (failure) {
+        debugPrint("Send email for Forgot Password Failed: ${failure.errorMessage}");
+        if (failure is ServerFailure && failure.errorData != null) {
+          if (failure.errorMessage.contains("User not found")) {
+            final snackBar = SnackBar(
+              elevation: 0,
+              duration: Duration(seconds: 3, microseconds: 300),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.transparent,
+              content: AwesomeSnackbarContent(
+                title: "Oops! Account Not Found", 
+                titleTextStyle: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700
+                ),
+                message: "Your account doesn't exist. Please create one.", 
+                messageTextStyle: TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w400
+                ),
+                contentType: ContentType.failure
+              ),
+            );
+
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(snackBar);
+          }
+        }
+      },
+      (result) {
+        debugPrint("Send email for Forgot Password Success: ${result.message}");
+        debugPrint("Login Success: ${result.status}");
+        debugPrint("Login Success Msg: ${result.message}");
+
+        if (result.message!.contains("Reset password email sent")) {
+          final snackBar = SnackBar(
+            elevation: 0,
+            duration: Duration(seconds: 3, microseconds: 300),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            content: AwesomeSnackbarContent(
+              title: "Go to Gmail", 
+              titleTextStyle: TextStyle(
+                fontSize: 13,
+                color: Colors.white,
+                fontWeight: FontWeight.w700
+              ),
+              message: "Check your email and spam folder to reset password", // Show actual error message
+              messageTextStyle: TextStyle(
+                fontSize: 10,
+                color: Colors.white,
+                fontWeight: FontWeight.w400
+              ),
+              contentType: ContentType.success,
+            ),
+          );
+
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(snackBar);
+        }
+      }
     );
 
     _isLoading = false;

@@ -2,7 +2,9 @@ import 'package:clockify/core/errors/failure.dart';
 import 'package:clockify/core/params/params.dart';
 import 'package:clockify/features/auth/business/repositories/auth_repository.dart';
 import 'package:clockify/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:clockify/features/auth/data/models/responses/forgot_password_response.dart';
 import 'package:clockify/features/auth/data/models/responses/login_user_response.dart';
+import 'package:clockify/features/auth/data/models/responses/reset_password_response.dart';
 import 'package:clockify/features/auth/data/models/user_model.dart';
 import 'package:dartz/dartz.dart';
 
@@ -50,5 +52,32 @@ class AuthRepositoryImpl extends AuthRepository {
       }
       return Left(ServerFailure(null, errorMessage: "Unexpected Error"));
     }
+  }
+
+  @override
+  Future<Either<Failure, ForgotPasswordResponse>> forgotPassword({required String email}) async {
+    try {
+      final response = await remoteDataSource.forgotPassword(email: email);
+      return Right(response);
+    } catch (e) {
+      if (e is ServerFailure) {
+        return Left(ServerFailure(e.errorData, errorMessage: e.errorMessage));
+      }
+      return Left(ServerFailure(null, errorMessage: "Unexpected Error"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ResetPasswordResponse>> resetPassword({required ResetPasswordParams resetPasswordParams}) async {
+    try {
+      final response = await remoteDataSource.resetPassword(resetPasswordParams: resetPasswordParams);
+      return Right(response);
+    } catch (e) {
+      if (e is ServerFailure) {
+        return Left(ServerFailure(e.errorData, errorMessage: e.errorMessage));
+      }
+      return Left(ServerFailure(null, errorMessage: "Unexpected Error"));
+    }
+
   }
 }

@@ -45,7 +45,6 @@ class LoginParams {
   final String password;
   const LoginParams({required this.email, required this.password});
 }
-
 class RegisterParams {
   final String email;
   final String password;
@@ -55,6 +54,35 @@ class RegisterParams {
   });
 }
 
+class ResetPasswordParams {
+  final String resetToken;
+  final String password;
+  final String confirmPassword;
+  const ResetPasswordParams({required this.resetToken, required this.password, required this.confirmPassword});
+}
+
+class GetAllActivitiesParams {
+  final String? description;
+  final String choice;
+  final double? locationLat;
+  final double? locationLng;
+
+  const GetAllActivitiesParams({
+    this.description,
+    required this.choice,
+    this.locationLat,
+    this.locationLng,
+  });
+
+   Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'choice': choice,
+      'location_lat': locationLat,
+      'location_lng': locationLng,
+    };
+  }
+}
 class CreateActivityParams {
   final String description;
   final String startTime;
@@ -83,21 +111,22 @@ class CreateActivityParams {
 class UpdateActivityParams{
   final String activityUuid;
   final String description;
-  final String startTime;
-  final double locationLat;
+  final DateTime startTime;
+  final DateTime endTime;
 
   const UpdateActivityParams({
     required this.activityUuid,
     required this.description,
     required this.startTime,
-    required this.locationLat,
+    required this.endTime,
   });
 
   Map<String, dynamic> toJson() {
     return {
+      'uuid': activityUuid,
       'description': description,
-      'start_time': startTime,
-      'location_lat': locationLat,
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime.toIso8601String(),
     };
   }
 }

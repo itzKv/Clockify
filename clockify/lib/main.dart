@@ -2,10 +2,8 @@ import 'package:clockify/core/network/dio_client.dart';
 import 'package:clockify/core/themes/theme.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/usecases/delete_activity.dart';
-import 'package:clockify/features/activity/business/usecases/get_activity_by_description.dart';
 import 'package:clockify/features/activity/business/usecases/get_all_activities.dart';
 import 'package:clockify/features/activity/business/usecases/create_activity.dart';
-import 'package:clockify/features/activity/business/usecases/sort_activities.dart';
 import 'package:clockify/features/activity/business/usecases/update_activity.dart';
 import 'package:clockify/features/activity/data/datasources/activity_local_data_source.dart';
 import 'package:clockify/features/activity/data/datasources/activity_remote_data_source.dart';
@@ -13,11 +11,14 @@ import 'package:clockify/features/activity/data/models/activity_model.dart';
 import 'package:clockify/features/activity/data/repositories/activity_repository_impl.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:clockify/features/activity_detail/presentation/pages/activity_detail_screen.dart';
+import 'package:clockify/features/auth/business/usecases/forgot_password.dart';
 import 'package:clockify/features/auth/business/usecases/login.dart';
 import 'package:clockify/features/auth/business/usecases/register.dart';
+import 'package:clockify/features/auth/business/usecases/reset_password.dart';
 import 'package:clockify/features/auth/business/usecases/verify_email.dart';
 import 'package:clockify/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:clockify/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:clockify/features/auth/presentation/pages/forgot_password.dart';
 import 'package:clockify/features/auth/presentation/pages/login_screen.dart';
 import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
 import 'package:clockify/features/home/presentation/pages/home_screen.dart';
@@ -49,9 +50,9 @@ void main() async {
   Hive.registerAdapter(ActivityModelAdapter());
 
   // Open the boxes
-  // TEMP
-  // await Hive.deleteBoxFromDisk('activityBox');
-  // await Hive.deleteBoxFromDisk('sessionBox');
+      // TEMP
+      // await Hive.deleteBoxFromDisk('sessionBox');
+      // await Hive.deleteBoxFromDisk('activityBox');
   final sessionBox = await Hive.openBox<SessionModel>('sessionBox');
   final activityBox = await Hive.openBox<ActivityModel>('activityBox');
   // Clear old local data
@@ -75,6 +76,8 @@ void main() async {
   final loginUsecase = Login(authRepository);
   final registerUsecase = Register(authRepository);
   final verifyEmailUsecase = VerifyEmail(authRepository);
+  final forgotPasswordUseCase = ForgotPassword(authRepository);
+  final resetPasswordUseCase = ResetPassword(authRepository);
 
     // --- SESSION
   final sessionRepository = SessionRepositoryImpl(localDataSource: localSessionDataSource);
@@ -93,8 +96,6 @@ void main() async {
   final updateActivity = UpdateActivity(activityRepository); 
   final getAllActivities = GetAllActivities(activityRepository);
   final deleteActivity = DeleteActivity(activityRepository);
-  final getActivityByDescription = GetActivityByDescription(activityRepository);
-  final sortActivities = SortActivities(activityRepository);
 
 
   runApp(
@@ -106,8 +107,6 @@ void main() async {
             createActivity: createActivity, 
             updateActivity: updateActivity,
             deleteActivity: deleteActivity,
-            getActivityByDescription: getActivityByDescription,
-            sortActivities: sortActivities
           ),
         ),
         ChangeNotifierProvider(
@@ -122,6 +121,8 @@ void main() async {
             login: loginUsecase, 
             register: registerUsecase, 
             verifyEmail: verifyEmailUsecase,
+            forgotPassword: forgotPasswordUseCase,
+            resetPassword: resetPasswordUseCase,
             sessionProvider: sessionProvider
           ),
         )
@@ -136,38 +137,59 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      initialRoute: '/',
-      onGenerateRoute: (settings) {
-        if (settings.name == '/activityDetail') {
-          final activity = settings.arguments as ActivityEntity;
-          return PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => ActivityDetailScreen(activity: activity),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              final offsetAnimation = Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(animation);
-
-              return SlideTransition(
-                position: offsetAnimation,
-                child: child,
-              );
-            },
-            transitionDuration: Duration(milliseconds: 300)
-          );
+    return FutureBuilder<bool>(
+      future: checkInternetConnection(), 
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator()); // Show loading indicator
         }
-        return null;
+        final isOnline = snapshot.data ?? false; 
+
+        return Consumer<SessionProvider>(
+          builder: (context, sessionProvider, child) {
+            if (sessionProvider.session == null && !isOnline) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                home: LoginScreen(),
+              );
+            } else {
+              return MaterialApp(
+                initialRoute: '/',
+                onGenerateRoute: (settings) {
+                  if (settings.name == '/activityDetail') {
+                    final activity = settings.arguments as ActivityEntity;
+                    return PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => ActivityDetailScreen(activity: activity),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        final offsetAnimation = Tween<Offset>(
+                          begin: const Offset(1.0, 0.0),
+                          end: Offset.zero,
+                        ).animate(animation);
+
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                      transitionDuration: Duration(milliseconds: 300),
+                    );
+                  }
+                  return null;
+                },
+                routes: {
+                  '/': (context) => SplashScreen(),
+                  '/login': (context) => LoginScreen(),
+                  '/createAccount': (context) => CreateAccountScreen(),
+                  '/password': (context) => PasswordScreen(),
+                  '/home': (context) => HomeScreen(),
+                  'forgotPassword': (context) => ForgotPasswordScreen(),
+                },
+                theme: appTheme,
+              );
+            }
+          },
+        );
       },
-      routes: {
-        '/': (context) => SplashScreen(),
-        '/login': (context) => LoginScreen(),
-        '/createAccount': (context) => CreateAccountScreen(),
-        '/password': (context) => PasswordScreen(),
-        '/home': (context) => HomeScreen(),
-      },
-      theme: appTheme,
     );
   }
-
 }

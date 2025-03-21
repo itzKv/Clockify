@@ -1,6 +1,6 @@
 import 'package:clockify/core/params/params.dart';
-import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/core/themes/theme.dart';
+import 'package:clockify/features/auth/presentation/pages/forgot_password.dart';
 import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
 import 'package:clockify/features/home/presentation/pages/home_screen.dart';
 import 'package:flutter/material.dart';
@@ -41,9 +41,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
     return null;
   }
 
-  Route _createRouteForHomeScreen() {
+  Route _createRouteForForgotPasswordScreen() {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+      pageBuilder: (context, animation, secondaryAnimation) => ForgotPasswordScreen(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(1.0, 0.0);
         const end = Offset.zero;
@@ -55,28 +55,6 @@ class _PasswordScreenState extends State<PasswordScreen> {
         return SlideTransition(
           position: offsetAnimation,
           child: child,
-        );
-      },
-    );
-  }
-
-  void _loginSucceess(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false, 
-      builder: (context) {
-        Future.delayed(Duration(seconds: 3), () async {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context); // Close the dialog
-            Navigator.of(context).push(
-              _createRouteForHomeScreen()
-            );
-          }
-        });
-
-        return SuccessDialog(
-          title: "Hello",
-          message: "Welcome back.",
         );
       },
     );
@@ -193,13 +171,13 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             authProvider.loginUser(context, loginParams);
                           }
                         },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      )
-                    ),
+                       style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        )
+                      ),
                     child: Text("OK", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),),
                   ),
                 );
@@ -209,19 +187,25 @@ class _PasswordScreenState extends State<PasswordScreen> {
             SizedBox(height: 40,),
 
             // Create new account
-            TextButton(
-              onPressed: () {},
-              child: Text(
-                "Forgot Password?",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xffA7A6C5),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Color(0xffA7A6C5),
-                ),
-              )
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                return TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(_createRouteForForgotPasswordScreen());
+                  },
+                  child: Text(
+                    "Forgot Password?",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xffA7A6C5),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Color(0xffA7A6C5),
+                    ),
+                  )
+                );
+              },
             )
           ],
         ),

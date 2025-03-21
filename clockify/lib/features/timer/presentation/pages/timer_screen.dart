@@ -98,9 +98,7 @@ class _TimerScreenState extends State<TimerScreen> {
       final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
       activityProvider.setLocation(position.latitude, position.longitude);
     } catch (e) {
-       setState(() {
-        _locationAddress = 'Error: $e'; 
-       });
+      _locationAddress = 'Error: $e';
     }
   }
 
@@ -436,7 +434,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
                             // Save
                             try {
-                              activityProvider.addActivity(activity);
+                              activityProvider.addActivity(context, activity);
 
                               // Sucess then show dialog
                               if (context.mounted) {
@@ -490,6 +488,8 @@ class _TimerScreenState extends State<TimerScreen> {
                         setState(() {
                           _isTimerStarted = false;
                           _isTimerStopped = false;
+                          _startTime = null;
+                          _endTime = null;
                           _descriptionController.text = "";
                         });
                       },
@@ -567,6 +567,8 @@ class _TimerScreenState extends State<TimerScreen> {
                         setState(() {
                           _isTimerStarted = false;
                           _isTimerStopped = false;
+                          _startTime = null;
+                          _endTime = null;
                         });
                       },
                       style: ElevatedButton.styleFrom(

@@ -44,4 +44,5 @@ class ActivityLocalDataSourceImpl implements ActivityLocalDataSource {
   Future<void> createActivity(ActivityModel activity) async {
      await activityBox.put(activity.uuid, activity);
   }
+
 }

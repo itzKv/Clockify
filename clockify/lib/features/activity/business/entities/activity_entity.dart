@@ -66,8 +66,8 @@ extension  ActivityEntityMapper on ActivityEntity {
     return UpdateActivityParams(
       activityUuid: uuid, 
       description: description, 
-      startTime: startTime.toIso8601String(), 
-      locationLat: locationLat ?? 0.0,
+      startTime: startTime,
+      endTime: endTime,
     );
   }
 }
