@@ -1,3 +1,4 @@
+import 'package:clockify/core/params/params.dart';
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
@@ -25,7 +26,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      context.read<ActivityProvider>().fetchActivities();
+      final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
+      final description = _searchController.text.toString();
+      debugPrint("Description when screen initialized: $description");
+      context.read<ActivityProvider>().fetchActivities(context, GetAllActivitiesParams(choice: choice, description: description));
     });
   }
 
@@ -64,7 +68,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
           child: TextFormField(
             controller: _searchController,
             onChanged: (value) {
-              activityProvider.searchActivity(context, value);
+              final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
+              final description = _searchController.text.toString();
+              final lat = activityProvider.latitude;
+              final lng = activityProvider.longitude;
+              activityProvider.fetchActivities(context, GetAllActivitiesParams(choice: choice, description: description, locationLat: lat, locationLng: lng));
             },
             decoration: InputDecoration(
               hintText: "Search activity",
@@ -112,7 +120,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               iconDisabledColor: Colors.white,
               iconEnabledColor: Colors.white,
               value: _dropdownValue,
-              items: ['Latest Date', 'Nearby'].map((String value) {
+              items: ['Latest Date', 'Oldest Date', 'Nearby'].map((String value) {
                 return DropdownMenuItem<String>(
                   value: value, 
                   alignment: Alignment.centerLeft,
@@ -131,9 +139,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
                 setState(() {
                   _dropdownValue = selectedValue;
+                  activityProvider.dropDownValue = selectedValue;
                 });
 
-                await activityProvider.sortingActivities(_dropdownValue, [activityProvider.latitude!, activityProvider.longitude!]);
+                final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
+                final description = _searchController.text.toString();
+                final lat = activityProvider.latitude;
+                final lng = activityProvider.longitude;
+                await activityProvider.fetchActivities(context, GetAllActivitiesParams(choice: choice.toLowerCase().trim(), description: description, locationLat: lat, locationLng: lng));
               },
             ),
           ),
@@ -211,7 +224,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       },
                     );
                   }
-                  activityProvider.deleteActivity(activity.uuid);
+                  activityProvider.deleteActivity(context, activity.uuid);
                 } catch (e) {
                   debugPrint("Error deleting activity: $e");
                 }
@@ -224,14 +237,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
           )
         ]
       ),
-      child: GestureDetector(
+      child: InkWell(
+        autofocus: true,
         onTap: () {
           Navigator.of(context).pushNamed(
             '/activityDetail',
             arguments: activity,
-          ).then((_) {
+          ).then((_) async {
             _searchController.clear();
             _toggleKeyboard();
+            final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
+            await activityProvider.fetchActivities(context, GetAllActivitiesParams(choice: choice));
           });
         },
         child: Padding(
@@ -378,20 +394,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
           if (_dropdownValue == 'Latest Date') {
             // 1. Map activities by Date
-            Map<String, List<ActivityEntity>> groupedActivities = {};
+            Map<DateTime, List<ActivityEntity>> groupedActivities = {};
             for (var activity in activities) {
-              String dateKey = DateFormat("yyyy-MM-dd").format(activity.endTime);
+              DateTime dateKey = DateTime(activity.startTime.year, activity.startTime.month, activity.startTime.day);
               groupedActivities.putIfAbsent(dateKey, () => []).add(activity);
             }
 
             // 2. Sort Dates (Latest First)
-            List<String> sortedDates = groupedActivities.keys.toList()
+            List<DateTime> sortedDates = groupedActivities.keys.toList()
             ..sort((a, b) => b.compareTo(a));
 
             return ListView.builder(
               itemCount: sortedDates.length,
               itemBuilder: (context, index) {
-                String dateKey = sortedDates[index];
+                DateTime dateKey = sortedDates[index];
                 List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
 
                 return Column(
@@ -405,7 +421,51 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                         child: Text(
-                          dateFormatter.format(DateTime.parse(dateKey)),
+                          dateFormatter.format(dateKey),
+                          style: TextStyle(
+                            color: Color(0xffF8D068),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
+                  ],
+                );
+              },
+            );
+          } else if (_dropdownValue == 'Oldest Date') {
+            // 1. Map activities by Date
+            Map<DateTime, List<ActivityEntity>> groupedActivities = {};
+            for (var activity in activities) {
+              DateTime dateKey = DateTime(activity.startTime.year, activity.startTime.month, activity.startTime.day);
+              groupedActivities.putIfAbsent(dateKey, () => []).add(activity);
+            }
+
+            // 2. Sort Dates (Oldest First)
+            List<DateTime> sortedDates = groupedActivities.keys.toList()
+            ..sort((a, b) => a.compareTo(b));
+
+            return ListView.builder(
+              itemCount: sortedDates.length,
+              itemBuilder: (context, index) {
+                DateTime dateKey = sortedDates[index];
+                List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date Header
+                    Container(
+                      width: double.infinity,
+                      height: 24,
+                      color: Color(0xff434B8C),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                        child: Text(
+                          dateFormatter.format(dateKey),
                           style: TextStyle(
                             color: Color(0xffF8D068),
                             fontSize: 12,

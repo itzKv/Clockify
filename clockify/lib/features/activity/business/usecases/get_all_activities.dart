@@ -1,4 +1,5 @@
 import 'package:clockify/core/errors/failure.dart';
+import 'package:clockify/core/params/params.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/business/repositories/activity_repository.dart';
 import 'package:dartz/dartz.dart';
@@ -8,7 +9,7 @@ class GetAllActivities {
 
   GetAllActivities(this.repository);
 
-  Future<Either<Failure, List<ActivityEntity>>> call() async {
-    return await repository.getAllActivities();
+  Future<Either<Failure, List<ActivityEntity>>> call(GetAllActivitiesParams getAllActivitiesParams) async {
+    return await repository.getAllActivities(getAllActivitiesParams);
   }
 }

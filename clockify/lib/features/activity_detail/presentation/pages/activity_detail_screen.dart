@@ -1,3 +1,5 @@
+import 'package:board_datetime_picker/board_datetime_picker.dart';
+import 'package:clockify/core/params/params.dart';
 import 'package:clockify/core/presentation/widgets/success_dialog_alert.dart';
 import 'package:clockify/features/activity/business/entities/activity_entity.dart';
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
@@ -20,11 +22,15 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   final DateFormat timeFormatter = DateFormat('HH:mm:ss'); 
   final DateFormat dateFormatter = DateFormat('d MMM yy'); 
   late TextEditingController _descriptionController = TextEditingController();
+  late DateTime _startTime;
+  late DateTime _endTime;
 
   @override
   void initState() {
     super.initState();
     _descriptionController = TextEditingController(text: widget.activity.description);
+    _startTime = widget.activity.startTime;
+    _endTime = widget.activity.endTime; 
   }
 
   bool _validateInput() {
@@ -37,6 +43,70 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     }
 
     return true;
+  }
+
+  Future<void> _selectStartDate() async {
+    final DateTime? newStartTime = await showBoardDateTimePicker(
+      context: context, 
+      pickerType: DateTimePickerType.datetime
+    );
+
+
+    if (newStartTime != null) {
+      if (newStartTime.isAfter(_endTime)) {
+        // Validation: StartTime must not be after EndTime
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red, 
+            content: Text("Start time must be after End time!")
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _startTime = DateTime(
+          newStartTime.year,
+          newStartTime.month,
+          newStartTime.day,
+          newStartTime.hour,
+          newStartTime.minute,
+          _startTime.second
+        );
+      });
+    }
+  }
+
+  /// Select End Time
+  Future<void> _selectEndDate() async {
+    DateTime? newEndTime = await showBoardDateTimePicker(
+      context: context,
+      pickerType: DateTimePickerType.datetime,
+
+    );
+
+    if (newEndTime != null) {
+      if (newEndTime.isBefore(_startTime)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red, 
+            content: Text("End time must be after Start time!")
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _endTime = DateTime(
+          newEndTime.year,
+          newEndTime.month,
+          newEndTime.day,
+          newEndTime.hour,
+          newEndTime.minute,
+          _endTime.second
+        );
+      });
+    }
   }
 
   
@@ -74,7 +144,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       child: StreamBuilder<int>(
         stream: _stopWatchTimer.rawTime, 
         builder: (context, snapshot) {
-          final displayTime = formatDuration(widget.activity.endTime.difference(widget.activity.startTime));
+          final displayTime = formatDuration(_endTime.difference(_startTime));
 
           return Text(
             displayTime,
@@ -90,142 +160,153 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   }
 
   Widget _timerInfo() {
-  return SizedBox(
-    width: double.infinity,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // --- Start Time
-        SizedBox(
-          height: 128,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                "Start Time",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(height: 12),
-              SizedBox(
-                height: 72,
-                width: 128,
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        timeFormatter.format(widget.activity.startTime),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        dateFormatter.format(widget.activity.startTime),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
+    return SizedBox(
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // --- Start Time
+          InkWell(
+            focusColor: Colors.transparent,
+            onTap: () {
+              _selectStartDate();
+            },
+            child: SizedBox(
+              height: 128,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Start Time",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // --- End Time
-        SizedBox(
-          height: 128,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                "End Time",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(height: 12),
-              SizedBox(
-                height: 72,
-                width: 128,
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        timeFormatter.format(widget.activity.endTime), // Changed to `formattedEndTime`
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  SizedBox(height: 12),
+                  SizedBox(
+                    height: 72,
+                    width: 128,
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            timeFormatter.format(_startTime),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            dateFormatter.format(_startTime),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        dateFormatter.format(widget.activity.endTime), // Changed to `formattedEndDate`
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-  Widget _locationInfo() {
-    return Container(
-      height: 48,
-      width: 270,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Color(0xff434B8C),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.location_on,
-              color: Color(0xffF8D068),
-              size: 20,
-            ),
-            Text(
-              '${widget.activity.locationLat},${widget.activity.locationLng}' ,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white,
-                fontWeight: FontWeight.w400
+                ],
               ),
             ),
-          ],) 
+          ),
+
+          // --- End Time
+          InkWell(
+            onTap: () {
+              _selectEndDate();
+            },
+            child: SizedBox(
+              height: 128,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "End Time",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  SizedBox(
+                    height: 72,
+                    width: 128,
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            timeFormatter.format(_endTime), // Changed to `formattedEndTime`
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            dateFormatter.format(_endTime), // Changed to `formattedEndDate`
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        ],
       ),
     );
   }
+
+
+  Widget _locationInfo() {
+  return Container(
+    height: 48,
+    width: 270,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      color: Color(0xff434B8C),
+    ),
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.location_on,
+            color: Color(0xffF8D068),
+            size: 20,
+          ),
+          Text(
+            '${widget.activity.locationLat},${widget.activity.locationLng}' ,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white,
+              fontWeight: FontWeight.w400
+            ),
+          ),
+        ],) 
+    ),
+  );
+}
 
   Widget _description() {
     return Container(
@@ -290,23 +371,22 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     if (_validateInput()) {
+                      print("Start Time: $_startTime");
+                      print("End Time: $_endTime");
+                      print("Widget Activity UUID: ${widget.activity.uuid}");
                       setState(() {
-                        
-                        final activity = ActivityEntity(
-                          uuid: widget.activity.uuid,
-                          startTime: widget.activity.startTime,
-                          endTime: widget.activity.endTime,
-                          duration: widget.activity.endTime.difference(widget.activity.startTime).inSeconds,
+                        final updateActivityParams = UpdateActivityParams(
+                          activityUuid: widget.activity.uuid,
+                          startTime: _startTime,
+                          endTime: _endTime, 
                           description: _descriptionController.text,
-                          locationLat: widget.activity.locationLat,
-                          locationLng: widget.activity.locationLng,
-                          createdAt: widget.activity.createdAt,
-                          updatedAt: DateTime.now(),
                         );
+
+                        debugPrint("Update Activity Params: $updateActivityParams");
 
                         // Save
                         try {
-                          activityProvider.updateActivity(activity); // Update
+                          activityProvider.updateActivity(context, updateActivityParams); // Update
 
                           // Sucess then show dialog
                           if (context.mounted) {
@@ -397,7 +477,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
                     if (confirmDelete == true) {
                       try {
-                        activityProvider.deleteActivity(widget.activity.uuid);
+                        activityProvider.deleteActivity(context, widget.activity.uuid);
 
                         // Sucess then show dialog
                         if (context.mounted) {
