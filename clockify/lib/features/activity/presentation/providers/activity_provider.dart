@@ -91,7 +91,6 @@ class ActivityProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         debugPrint("Failure Creating Activities: ${failure.errorMessage}");
-        throw Exception("Failed to creating activity: ${failure.errorMessage}");
       },
       (_) async {
         debugPrint("Success Creating Activities");
