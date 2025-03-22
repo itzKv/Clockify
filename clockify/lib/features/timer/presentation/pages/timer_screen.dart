@@ -3,6 +3,7 @@ import 'package:clockify/features/activity/business/entities/activity_entity.dar
 import 'package:clockify/features/activity/presentation/providers/activity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
@@ -381,253 +382,256 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Widget _button(ActivityProvider activityProvider) {
-    return SizedBox(
-      width: double.infinity,
-      child: _isTimerStarted
-        ? (_isTimerStopped
-          ? SizedBox(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // --- SAVE
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
+    return Skeletonizer(
+      enabled: activityProvider.isLoading,
+      child: SizedBox(
+        width: double.infinity,
+        child: _isTimerStarted
+          ? (_isTimerStopped
+            ? SizedBox(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // --- SAVE
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color.fromARGB(10, 0, 0, 0),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                            offset: Offset(0.0, 2.0),
+                          )
+                        ]
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color.fromARGB(10, 0, 0, 0),
-                          blurRadius: 10,
-                          spreadRadius: 0,
-                          offset: Offset(0.0, 2.0),
-                        )
-                      ]
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_validateInput()) {
-                          setState(() {
-                            _isTimerStarted = !_isTimerStarted;
-                            _isTimerStopped = !_isTimerStopped;
-                            
-                            final activity = ActivityEntity(
-                              uuid: _uuid.v4(),
-                              startTime: _startTime!,
-                              endTime: _endTime!,
-                              duration: _endTime!.difference(_startTime!).inSeconds,
-                              description: _descriptionController.text,
-                              locationLat: _locationLat,
-                              locationLng: _locationLng,
-                              createdAt: _startTime!,
-                              updatedAt: _endTime!,
-                            );
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_validateInput()) {
+                            setState(() {
+                              _isTimerStarted = !_isTimerStarted;
+                              _isTimerStopped = !_isTimerStopped;
+                              
+                              final activity = ActivityEntity(
+                                uuid: _uuid.v4(),
+                                startTime: _startTime!,
+                                endTime: _endTime!,
+                                duration: _endTime!.difference(_startTime!).inSeconds,
+                                description: _descriptionController.text,
+                                locationLat: _locationLat,
+                                locationLng: _locationLng,
+                                createdAt: _startTime!,
+                                updatedAt: _endTime!,
+                              );
 
-                            // Reset stopwatch
-                            _stopWatchTimer.onResetTimer();
+                              // Reset stopwatch
+                              _stopWatchTimer.onResetTimer();
+                              _startTime = null;
+                              _endTime = null;
+                              _descriptionController.text = "";
+
+                              // Save
+                              try {
+                                activityProvider.addActivity(context, activity);
+
+                                // Sucess then show dialog
+                                if (context.mounted) {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false, // Prevent any dismmising by tapping outside
+                                    builder: (context) {
+                                      Future.delayed(Duration(seconds: 3), () async {
+                                        if (Navigator.canPop(context)) {
+                                          Navigator.pop(context); // Close the dialog
+                                        }
+                                      });
+
+                                      return SuccessDialog(
+                                        title: "Activity Saved", 
+                                        message: "Your activity has been saved."
+                                      );
+                                    },
+                                  );
+                                }
+                              } catch (e) {
+                                debugPrint("Error saving activity: $e");
+                              }
+                            });
+                          }
+                        }, 
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          "SAVE",
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(width: 16),
+
+                  // DELETE Button
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _stopWatchTimer.onResetTimer();
+                          setState(() {
+                            _isTimerStarted = false;
+                            _isTimerStopped = false;
                             _startTime = null;
                             _endTime = null;
                             _descriptionController.text = "";
-
-                            // Save
-                            try {
-                              activityProvider.addActivity(context, activity);
-
-                              // Sucess then show dialog
-                              if (context.mounted) {
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false, // Prevent any dismmising by tapping outside
-                                  builder: (context) {
-                                    Future.delayed(Duration(seconds: 3), () async {
-                                      if (Navigator.canPop(context)) {
-                                        Navigator.pop(context); // Close the dialog
-                                      }
-                                    });
-
-                                    return SuccessDialog(
-                                      title: "Activity Saved", 
-                                      message: "Your activity has been saved."
-                                    );
-                                  },
-                                );
-                              }
-                            } catch (e) {
-                              debugPrint("Error saving activity: $e");
-                            }
                           });
-                        }
-                      }, 
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        "SAVE",
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                        child: Text(
+                          "DELETE",
+                          style: TextStyle(color: Color(0XFFA7A6C5), fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                   ),
-                ),
-
-                SizedBox(width: 16),
-
-                // DELETE Button
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _stopWatchTimer.onResetTimer();
-                        setState(() {
-                          _isTimerStarted = false;
-                          _isTimerStopped = false;
-                          _startTime = null;
-                          _endTime = null;
-                          _descriptionController.text = "";
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        "DELETE",
-                        style: TextStyle(color: Color(0XFFA7A6C5), fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-          : SizedBox(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // --- STOP
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color.fromARGB(10, 0, 0, 0),
-                          blurRadius: 10,
-                          spreadRadius: 0,
-                          offset: Offset(0.0, 2.0),
-                        )
-                      ]
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _stopWatchTimer.onStopTimer();
-                        setState(() {
-                          _isTimerStopped = !_isTimerStopped;
-                          _endTime = DateTime.now();
-                        });
-                      }, 
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        "STOP",
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ),
-
-                SizedBox(width: 16),
-
-                // RESET Button
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _stopWatchTimer.onResetTimer();
-                        setState(() {
-                          _isTimerStarted = false;
-                          _isTimerStopped = false;
-                          _startTime = null;
-                          _endTime = null;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        "RESET",
-                        style: TextStyle(color: Color(0XFFA7A6C5), fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-        )
-        : Container(
-            height: 48,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
+                ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Color.fromARGB(10, 0, 0, 0),
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                  offset: Offset(0.0, 2.0),
-                )
-              ]
-            ),
-            child: ElevatedButton(
-              onPressed: () {
-                _stopWatchTimer.onResetTimer();
-                _stopWatchTimer.onStartTimer();
-                setState(() {
-                  _isTimerStarted = !_isTimerStarted;
-                  _startTime = DateTime.now();
-                });
-              }, 
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            )
+            : SizedBox(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // --- STOP
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color.fromARGB(10, 0, 0, 0),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                            offset: Offset(0.0, 2.0),
+                          )
+                        ]
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _stopWatchTimer.onStopTimer();
+                          setState(() {
+                            _isTimerStopped = !_isTimerStopped;
+                            _endTime = DateTime.now();
+                          });
+                        }, 
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          "STOP",
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(width: 16),
+
+                  // RESET Button
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _stopWatchTimer.onResetTimer();
+                          setState(() {
+                            _isTimerStarted = false;
+                            _isTimerStopped = false;
+                            _startTime = null;
+                            _endTime = null;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          "RESET",
+                          style: TextStyle(color: Color(0XFFA7A6C5), fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          )
+          : Container(
+              height: 48,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [Color(0xff45CDDC), Color(0xff2EBED9)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color.fromARGB(10, 0, 0, 0),
+                    blurRadius: 10,
+                    spreadRadius: 0,
+                    offset: Offset(0.0, 2.0),
+                  )
+                ]
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  _stopWatchTimer.onResetTimer();
+                  _stopWatchTimer.onStartTimer();
+                  setState(() {
+                    _isTimerStarted = !_isTimerStarted;
+                    _startTime = DateTime.now();
+                  });
+                }, 
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  "START",
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
-              child: Text(
-                "START",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-            ),
-          )
+            )
+      ),
     );
   }
 
@@ -666,14 +670,17 @@ class _TimerScreenState extends State<TimerScreen> {
             Expanded(
               child: SingleChildScrollView(
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: children,
+                child: Skeletonizer(
+                  enabled: activityProvider.isLoading,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: children,
+                    ),
                   ),
-                ),
+                )
               ),
             ),
           ],

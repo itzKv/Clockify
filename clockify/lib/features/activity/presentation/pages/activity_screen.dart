@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
@@ -56,102 +57,110 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Widget _searchActivity(ActivityProvider activityProvider) {
     return Flexible(
       flex: 2,
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Colors.white,
-        ),
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: TextFormField(
-            controller: _searchController,
-            onChanged: (value) {
-              final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
-              final description = _searchController.text.toString();
-              final lat = activityProvider.latitude;
-              final lng = activityProvider.longitude;
-              activityProvider.fetchActivities(context, GetAllActivitiesParams(choice: choice, description: description, locationLat: lat, locationLng: lng));
-            },
-            decoration: InputDecoration(
-              hintText: "Search activity",
-              hintStyle: TextStyle(
-                color: Color(0xffA7A6C5),
-                fontWeight: FontWeight.w400,
-                fontSize: 14,
-              ),
-              suffixIcon: GestureDetector(
-                onTap: () {
-                  _toggleKeyboard();
-                },
-                child: Icon(
-                  Icons.search,
-                  color: Color(0xff25367B),
+      child: Skeletonizer(
+        enabled: activityProvider.isLoading,
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+          ),
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: TextFormField(
+              controller: _searchController,
+              onChanged: (value) {
+                final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
+                final description = _searchController.text.toString();
+                final lat = activityProvider.latitude;
+                final lng = activityProvider.longitude;
+                activityProvider.fetchActivities(context, GetAllActivitiesParams(choice: choice, description: description, locationLat: lat, locationLng: lng));
+              },
+              decoration: InputDecoration(
+                hintText: "Search activity",
+                hintStyle: TextStyle(
+                  color: Color(0xffA7A6C5),
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
                 ),
+                suffixIcon: GestureDetector(
+                  onTap: () {
+                    _toggleKeyboard();
+                  },
+                  child: Icon(
+                    Icons.search,
+                    color: Color(0xff25367B),
+                  ),
+                ),
+                border: InputBorder.none, // Removes default border
+                contentPadding: EdgeInsets.symmetric(vertical: 12)
               ),
-              border: InputBorder.none, // Removes default border
-              contentPadding: EdgeInsets.symmetric(vertical: 12)
             ),
           ),
         ),
-      ),
+      )
     );
   }
 
   Widget _filterActivity(ActivityProvider activityProvider) {
     return Flexible(
       flex: 1,
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Color(0xff434B8C)
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: DropdownButtonHideUnderline( // Removes dropdown underline
-            child: DropdownButton<String>(
-              dropdownColor: Color(0xff434B8C),
-              borderRadius: BorderRadius.circular(12),
-              isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down_rounded),
-              iconSize: 20,
-              iconDisabledColor: Colors.white,
-              iconEnabledColor: Colors.white,
-              value: _dropdownValue,
-              items: ['Latest Date', 'Oldest Date', 'Nearby'].map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value, 
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w400
+      child: Skeletonizer(
+        enabled: activityProvider.isLoading,
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Color(0xff434B8C)
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: DropdownButtonHideUnderline( // Removes dropdown underline
+              child: DropdownButton<String>(
+                dropdownColor: Color(0xff434B8C),
+                borderRadius: BorderRadius.circular(12),
+                isExpanded: true,
+                icon: Icon(Icons.keyboard_arrow_down_rounded),
+                iconSize: 20,
+                iconDisabledColor: Colors.white,
+                iconEnabledColor: Colors.white,
+                value: _dropdownValue,
+                items: ['Latest Date', 'Oldest Date', 'Nearby'].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value, 
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w400
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? selectedValue) async {
-                if (selectedValue == null) return;
+                  );
+                }).toList(),
+                onChanged: (String? selectedValue) async {
+                  if (selectedValue == null) return;
 
-                setState(() {
-                  _dropdownValue = selectedValue;
-                  activityProvider.dropDownValue = selectedValue;
-                });
+                  setState(() {
+                    _dropdownValue = selectedValue;
+                    activityProvider.dropDownValue = selectedValue;
+                  });
 
-                final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
-                final description = _searchController.text.toString();
-                final lat = activityProvider.latitude;
-                final lng = activityProvider.longitude;
-                await activityProvider.fetchActivities(context, GetAllActivitiesParams(choice: choice.toLowerCase().trim(), description: description, locationLat: lat, locationLng: lng));
-              },
+                  final String choice = _dropdownValue.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '');
+                  final description = _searchController.text.toString();
+                  final lat = activityProvider.latitude;
+                  final lng = activityProvider.longitude;
+                  await activityProvider.fetchActivities(context, GetAllActivitiesParams(choice: choice.toLowerCase().trim(), description: description, locationLat: lat, locationLng: lng));
+                },
+              ),
             ),
           ),
         ),
-      ),
+      )
     );
   }
 
@@ -368,17 +377,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  Widget _activityList(ActivityProvider activityProvider) {
+  Widget _activityList() {
     return Expanded(
       child: Consumer<ActivityProvider>(
         builder: (context, activityProvider, child) {
           final activities = activityProvider.activities;
-
-          if (activityProvider.isLoading) {
-            return Center(
-              child: CircularProgressIndicator(color: Colors.white,),
-            );
-          }
 
           if (activities.isEmpty) {
             return Center(
@@ -404,37 +407,40 @@ class _ActivityScreenState extends State<ActivityScreen> {
             List<DateTime> sortedDates = groupedActivities.keys.toList()
             ..sort((a, b) => b.compareTo(a));
 
-            return ListView.builder(
-              itemCount: sortedDates.length,
-              itemBuilder: (context, index) {
-                DateTime dateKey = sortedDates[index];
-                List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
+            return Skeletonizer(
+              enabled: activityProvider.isLoading,
+              child: ListView.builder(
+                itemCount: sortedDates.length,
+                itemBuilder: (context, index) {
+                  DateTime dateKey = sortedDates[index];
+                  List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Date Header
-                    Container(
-                      width: double.infinity,
-                      height: 24,
-                      color: Color(0xff434B8C),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                        child: Text(
-                          dateFormatter.format(dateKey),
-                          style: TextStyle(
-                            color: Color(0xffF8D068),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Date Header
+                      Container(
+                        width: double.infinity,
+                        height: 24,
+                        color: Color(0xff434B8C),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                          child: Text(
+                            dateFormatter.format(dateKey),
+                            style: TextStyle(
+                              color: Color(0xffF8D068),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
-                  ],
-                );
-              },
+                      ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
+                    ],
+                  );
+                },
+              )
             );
           } else if (_dropdownValue == 'Oldest Date') {
             // 1. Map activities by Date
@@ -448,70 +454,76 @@ class _ActivityScreenState extends State<ActivityScreen> {
             List<DateTime> sortedDates = groupedActivities.keys.toList()
             ..sort((a, b) => a.compareTo(b));
 
-            return ListView.builder(
-              itemCount: sortedDates.length,
-              itemBuilder: (context, index) {
-                DateTime dateKey = sortedDates[index];
-                List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
+            return Skeletonizer(
+              enabled: activityProvider.isLoading,
+              child: ListView.builder(
+                itemCount: sortedDates.length,
+                itemBuilder: (context, index) {
+                  DateTime dateKey = sortedDates[index];
+                  List<ActivityEntity> dailyActivities = groupedActivities[dateKey]!;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Date Header
-                    Container(
-                      width: double.infinity,
-                      height: 24,
-                      color: Color(0xff434B8C),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                        child: Text(
-                          dateFormatter.format(dateKey),
-                          style: TextStyle(
-                            color: Color(0xffF8D068),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Date Header
+                      Container(
+                        width: double.infinity,
+                        height: 24,
+                        color: Color(0xff434B8C),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                          child: Text(
+                            dateFormatter.format(dateKey),
+                            style: TextStyle(
+                              color: Color(0xffF8D068),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
-                  ],
-                );
-              },
+                      ...dailyActivities.map((activity) => _activityInfo(activity, activityProvider))
+                    ],
+                  );
+                },
+              )
             );
           } else if (_dropdownValue == 'Nearby') {
-            return ListView.builder(
-              itemCount: activities.length,
-              itemBuilder: (context, index) {
-                final activity = activities[index];
-                String activityDate = dateFormatter.format(activity.endTime);
+            return Skeletonizer(
+              enabled: activityProvider.isLoading,
+              child: ListView.builder(
+                itemCount: activities.length,
+                itemBuilder: (context, index) {
+                  final activity = activities[index];
+                  String activityDate = dateFormatter.format(activity.endTime);
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Date Header
-                    Container(
-                      width: double.infinity,
-                      height: 24,
-                      color: Color(0xff434B8C),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                        child: Text(
-                          activityDate,
-                          style: TextStyle(
-                            color: Color(0xffF8D068),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Date Header
+                      Container(
+                        width: double.infinity,
+                        height: 24,
+                        color: Color(0xff434B8C),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                          child: Text(
+                            activityDate,
+                            style: TextStyle(
+                              color: Color(0xffF8D068),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    _activityInfo(activity, activityProvider)
-                  ],
-                );
-              },
+                      _activityInfo(activity, activityProvider)
+                    ],
+                  );
+                },
+              )
             );
           }
 
@@ -561,11 +573,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 const SizedBox(height: 24),
 
                 // ListView or other UI elements can go here
-                Consumer<ActivityProvider>(
-                  builder: (context, activityProvider, child) {
-                    return _activityList(activityProvider);
-                  },
-                )
+                _activityList()
               ],
             ), 
           ),
