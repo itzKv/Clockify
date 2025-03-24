@@ -1,3 +1,3 @@
 # clockify
 
-Currently on progress
+Version 1.1
