@@ -2,7 +2,6 @@ import 'package:clockify/core/params/params.dart';
 import 'package:clockify/core/themes/theme.dart';
 import 'package:clockify/features/auth/presentation/pages/forgot_password.dart';
 import 'package:clockify/features/auth/presentation/providers/auth_provider.dart';
-import 'package:clockify/features/home/presentation/pages/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

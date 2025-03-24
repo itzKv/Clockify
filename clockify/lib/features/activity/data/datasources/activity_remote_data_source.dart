@@ -5,8 +5,6 @@ import 'package:clockify/core/params/params.dart';
 import 'package:clockify/features/activity/data/models/responses/create_activity_response.dart';
 import 'package:clockify/features/activity/data/models/responses/delete_activity_response.dart';
 import 'package:clockify/features/activity/data/models/responses/get_all_activities_response.dart';
-import 'package:clockify/features/activity/data/models/responses/search_activity_description.dart';
-import 'package:clockify/features/activity/data/models/responses/sort_activities_response.dart';
 import 'package:clockify/features/activity/data/models/responses/update_activity_response.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

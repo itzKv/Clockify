@@ -54,7 +54,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
     final token = sessionProvider.session?.token; 
     if (token == null) throw Exception("Unauthorized: Token is missing");
 
-    final model = ActivityModel.fromEntity(activity, token);
+    // final model = ActivityModel.fromEntity(activity, token);
     try {
       if (isOnline) {
         await remoteDataSource.createActivity(createActivityParams: activity.toCreateParams(), token: token);
