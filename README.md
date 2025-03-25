@@ -1,4 +1,7 @@
 # Clockify
+## WARNING: PLEASE USE THIS CREDENTIALS FOR THE MOMENT
+email: testdss96@gmail.com
+pw: DSStheB3s@
 
 ## DSS Internship Mini-Project
 
