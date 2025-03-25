@@ -54,7 +54,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         ApiEndpoints.register,
         data: {
           "email": registerParams.email, 
-          "password": registerParams.password
+          "password": registerParams.password,
+          "confirmPassword": registerParams.confirmPassword
         },
         options: Options(
           method: 'POST',

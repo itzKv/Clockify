@@ -212,10 +212,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         if (_formKey.currentState!.validate()) {
                           String email = _emailController.text.trim();
                           String password = _passwordController.text;
+                          String confirmPassword = _confirmPasswordController.text;
 
                           RegisterParams registerParams = RegisterParams(
                             email: email, 
-                            password: password
+                            password: password,
+                            confirmPassword: confirmPassword,                                          
                           );
 
                           authProvider.registerUser(context, registerParams);

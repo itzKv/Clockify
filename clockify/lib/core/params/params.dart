@@ -48,9 +48,11 @@ class LoginParams {
 class RegisterParams {
   final String email;
   final String password;
+  final String confirmPassword;
   const RegisterParams({
     required this.email,
     required this.password,
+    required this.confirmPassword,
   });
 }
 
