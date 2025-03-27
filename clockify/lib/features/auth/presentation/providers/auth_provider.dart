@@ -10,8 +10,8 @@ import 'package:clockify/features/auth/business/usecases/verify_email.dart';
 import 'package:clockify/features/auth/presentation/pages/login_screen.dart';
 import 'package:clockify/features/auth/presentation/widgets/verify_email_dialog.dart';
 import 'package:clockify/features/home/presentation/pages/home_screen.dart';
-import 'package:clockify/features/session/data/models/session_model.dart';
-import 'package:clockify/features/session/presentation/providers/session_provider.dart';
+import 'package:clockify/core/session/data/models/session_model.dart';
+import 'package:clockify/core/session/presentation/providers/session_provider.dart';
 import 'package:flutter/material.dart';
 
 class AuthProvider extends ChangeNotifier {

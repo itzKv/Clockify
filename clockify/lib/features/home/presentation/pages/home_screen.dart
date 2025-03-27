@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:clockify/features/activity/presentation/pages/activity_screen.dart';
 import 'package:clockify/features/auth/presentation/pages/login_screen.dart';
-import 'package:clockify/features/session/presentation/providers/session_provider.dart';
+import 'package:clockify/core/session/presentation/providers/session_provider.dart';
 import 'package:clockify/features/timer/presentation/pages/timer_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

@@ -5,7 +5,7 @@ import 'package:clockify/features/activity/business/repositories/activity_reposi
 import 'package:clockify/features/activity/data/datasources/activity_local_data_source.dart';
 import 'package:clockify/features/activity/data/datasources/activity_remote_data_source.dart';
 import 'package:clockify/features/activity/data/models/activity_model.dart';
-import 'package:clockify/features/session/presentation/providers/session_provider.dart';
+import 'package:clockify/core/session/presentation/providers/session_provider.dart';
 import 'package:dartz/dartz.dart';
 
 class ActivityRepositoryImpl implements ActivityRepository {
